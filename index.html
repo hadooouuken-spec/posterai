@@ -1937,9 +1937,11 @@
       btn.textContent = 'Processing…';
       btn.disabled = true;
 
-      // Demo mode — Stripe key not set yet
+      // Safety check — payment element must be loaded before confirming
       if (!stripe || !paymentElement) {
-        setTimeout(() => showSuccess(), 1500);
+        document.getElementById('card-errors').textContent = 'Payment not ready. Please try again.';
+        btn.textContent = 'Pay & Create My Poster →';
+        btn.disabled = false;
         return;
       }
 
@@ -1972,10 +1974,13 @@
     // Second click → confirm payment
     let paymentReady = false;
     async function handlePaymentInit() {
-      if (!paymentReady && stripe) {
-        await handlePaymentStep();
-        paymentReady = true;
-        document.getElementById('pay-btn').textContent = 'Confirm & Pay →';
+      if (!paymentReady) {
+        await handlePaymentStep(); // initializes stripe + fetches payment intent
+        // Only mark ready if the payment element actually loaded successfully
+        if (paymentElement) {
+          paymentReady = true;
+          document.getElementById('pay-btn').textContent = 'Confirm & Pay →';
+        }
         return;
       }
       await handlePayment();
