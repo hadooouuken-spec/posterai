@@ -1,17 +1,11 @@
-[
-build
-]
+[build]
   publish = "."
   functions = "netlify/functions"
 
-[
-functions
-]
-  node_bundler = "esbuild"
+[build.environment]
+  NODE_VERSION = "18"
 
-[[
-redirects
-]]
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
