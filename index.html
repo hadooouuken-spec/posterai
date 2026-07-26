@@ -3,2039 +3,1001 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PosterAI — Turn Any Memory Into a Movie Poster</title>
-  <meta name="description" content="Upload a photo and our AI transforms it into a Hollywood movie poster, Pixar-style art, anime poster, and more. Perfect personalized gift." />
-
-  <!-- Google Fonts -->
+  <title>PosterAI — AI Movie Posters Delivered in Minutes</title>
+  <meta name="description" content="Upload a photo, pick a style, and our AI transforms it into a Hollywood movie poster — delivered to your inbox in minutes." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet" />
-
-  <!-- Stripe.js -->
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://js.stripe.com/v3/"></script>
-
   <style>
-    /* ═══════════════════════════════════════════════════════════
-       RESET & BASE
-    ═══════════════════════════════════════════════════════════ */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --gold:       #D4AF37;
-      --gold-light: #F0D060;
-      --gold-dark:  #A08020;
-      --bg:         #0A0A0A;
-      --bg2:        #111111;
-      --bg3:        #1A1A1A;
-      --bg4:        #222222;
-      --text:       #F0EDE8;
-      --muted:      #888880;
-      --red:        #C0392B;
-      --radius:     12px;
-      --trans:      0.25s ease;
+      --gold: #D4AF37; --gold-light: #F0D060; --gold-dark: #A08020;
+      --bg: #0A0A0A; --bg2: #111111; --bg3: #1A1A1A; --bg4: #222222;
+      --text: #F0EDE8; --muted: #888880; --red: #C0392B;
+      --radius: 12px; --trans: 0.25s ease;
     }
     html { scroll-behavior: smooth; }
-    body {
-      font-family: 'Inter', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      overflow-x: hidden;
-    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; overflow-x: hidden; }
     img { max-width: 100%; display: block; }
     a { color: inherit; text-decoration: none; }
     button { cursor: pointer; font-family: inherit; border: none; }
 
-    /* ═══════════════════════════════════════════════════════════
-       UTILITY
-    ═══════════════════════════════════════════════════════════ */
-    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
-    .btn-gold {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: linear-gradient(135deg, var(--gold), var(--gold-light));
-      color: #0A0A0A;
-      font-weight: 700; font-size: 15px; letter-spacing: 0.5px;
-      padding: 14px 32px; border-radius: 50px;
-      transition: var(--trans); border: none;
-      box-shadow: 0 4px 24px rgba(212,175,55,0.35);
-    }
-    .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(212,175,55,0.5); }
-    .btn-outline {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: transparent;
-      border: 1.5px solid var(--gold);
-      color: var(--gold);
-      font-weight: 600; font-size: 15px;
-      padding: 13px 30px; border-radius: 50px;
-      transition: var(--trans);
-    }
-    .btn-outline:hover { background: rgba(212,175,55,0.1); }
-    .section-label {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 13px; letter-spacing: 3px;
-      color: var(--gold); text-transform: uppercase;
-      margin-bottom: 12px; display: block;
-    }
-    .section-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(36px, 5vw, 60px);
-      line-height: 1.05; color: var(--text);
-      margin-bottom: 16px;
-    }
-    .section-sub {
-      color: var(--muted); font-size: 17px; max-width: 560px;
-    }
-    .gold-text { color: var(--gold); }
-    .tag {
-      display: inline-block;
-      background: rgba(212,175,55,0.15);
-      border: 1px solid rgba(212,175,55,0.3);
-      color: var(--gold); font-size: 11px; font-weight: 600;
-      letter-spacing: 1px; text-transform: uppercase;
-      padding: 4px 10px; border-radius: 20px;
+    /* Film grain */
+    body::before {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9999; opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       NAV
-    ═══════════════════════════════════════════════════════════ */
-    #nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-      padding: 0 24px;
-      background: rgba(10,10,10,0.85);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      transition: var(--trans);
-    }
-    .nav-inner {
-      max-width: 1200px; margin: 0 auto;
-      display: flex; align-items: center; justify-content: space-between;
-      height: 68px;
-    }
-    .nav-logo {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 26px; letter-spacing: 2px;
-      color: var(--text);
-    }
+    /* Buttons */
+    .btn-gold { background: var(--gold); color: #000; font-weight: 700; font-size: 15px; padding: 14px 32px; border-radius: 50px; transition: var(--trans); letter-spacing: 0.3px; }
+    .btn-gold:hover { background: var(--gold-light); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(212,175,55,0.3); }
+    .btn-gold:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .btn-outline { background: transparent; color: var(--text); font-weight: 600; font-size: 15px; padding: 14px 32px; border-radius: 50px; border: 1.5px solid rgba(255,255,255,0.2); transition: var(--trans); }
+    .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+    .btn-back { background: transparent; color: var(--muted); font-size: 14px; padding: 10px 0; transition: var(--trans); }
+    .btn-back:hover { color: var(--text); }
+
+    /* Nav */
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 0 24px; height: 68px; display: flex; align-items: center; background: rgba(10,10,10,0.85); backdrop-filter: blur(16px); border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .nav-inner { max-width: 1200px; margin: 0 auto; width: 100%; display: flex; align-items: center; justify-content: space-between; }
+    .nav-logo { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 2px; }
     .nav-logo span { color: var(--gold); }
-    .nav-links {
-      display: flex; align-items: center; gap: 32px;
-      list-style: none;
-    }
-    .nav-links a {
-      font-size: 14px; font-weight: 500; color: var(--muted);
-      transition: color var(--trans);
-    }
+    .nav-links { list-style: none; display: flex; gap: 32px; align-items: center; }
+    .nav-links a { font-size: 14px; font-weight: 500; color: var(--muted); transition: var(--trans); }
     .nav-links a:hover { color: var(--text); }
-    .nav-cta { padding: 10px 24px !important; font-size: 14px !important; }
+    .nav-cta { padding: 10px 24px; font-size: 14px; }
     .nav-mobile-toggle { display: none; flex-direction: column; gap: 5px; background: none; padding: 4px; }
-    .nav-mobile-toggle span { width: 24px; height: 2px; background: var(--text); border-radius: 2px; transition: var(--trans); }
+    .nav-mobile-toggle span { display: block; width: 22px; height: 2px; background: var(--text); border-radius: 2px; }
+    @media (max-width: 768px) { .nav-links { display: none; } .nav-mobile-toggle { display: flex; } }
 
-    /* ═══════════════════════════════════════════════════════════
-       HERO
-    ═══════════════════════════════════════════════════════════ */
-    #hero {
-      min-height: 100vh;
-      display: flex; align-items: center;
-      padding: 120px 24px 80px;
-      position: relative; overflow: hidden;
-    }
-    .hero-bg {
-      position: absolute; inset: 0; z-index: 0;
-      background:
-        radial-gradient(ellipse 80% 60% at 60% 40%, rgba(212,175,55,0.07) 0%, transparent 70%),
-        radial-gradient(ellipse 50% 50% at 80% 80%, rgba(192,57,43,0.06) 0%, transparent 60%),
-        linear-gradient(180deg, #0A0A0A 0%, #0D0B07 100%);
-    }
-    /* Film grain overlay */
-    .hero-bg::after {
-      content: '';
-      position: absolute; inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-      opacity: 0.4; pointer-events: none;
-    }
-    .hero-inner {
-      position: relative; z-index: 1;
-      max-width: 1200px; margin: 0 auto;
-      display: grid; grid-template-columns: 1fr 1fr;
-      gap: 64px; align-items: center;
-    }
-    .hero-eyebrow {
-      display: flex; align-items: center; gap: 10px;
-      margin-bottom: 24px;
-    }
-    .hero-eyebrow-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--gold); animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(1.3); }
-    }
-    .hero-eyebrow-text {
-      font-size: 12px; font-weight: 600; letter-spacing: 2px;
-      text-transform: uppercase; color: var(--gold);
-    }
-    .hero-headline {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(52px, 7vw, 88px);
-      line-height: 1.0; margin-bottom: 20px;
-    }
-    .hero-headline .line2 { color: var(--gold); }
-    .hero-sub {
-      font-size: 18px; color: var(--muted);
-      line-height: 1.7; margin-bottom: 36px; max-width: 520px;
-    }
-    .hero-sub strong { color: var(--text); }
-    .hero-ctas { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 48px; }
-    .hero-social-proof {
-      display: flex; align-items: center; gap: 16px;
-    }
-    .hero-avatars {
-      display: flex;
-    }
-    .hero-avatar {
-      width: 36px; height: 36px; border-radius: 50%;
-      border: 2px solid var(--bg);
-      margin-left: -10px; font-size: 16px;
-      display: flex; align-items: center; justify-content: center;
-      background: var(--bg3);
-    }
-    .hero-avatar:first-child { margin-left: 0; }
-    .hero-proof-text { font-size: 13px; color: var(--muted); }
-    .hero-proof-text strong { color: var(--text); }
-    .hero-stars { color: var(--gold); font-size: 13px; }
+    /* Hero */
+    #hero { min-height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; padding: 120px 24px 80px; position: relative; overflow: hidden; }
+    .hero-bg { position: absolute; inset: 0; background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(212,175,55,0.07) 0%, transparent 70%); }
+    .hero-inner { position: relative; max-width: 800px; }
+    .hero-label { display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); background: rgba(212,175,55,0.1); border: 1px solid rgba(212,175,55,0.2); padding: 6px 16px; border-radius: 50px; margin-bottom: 28px; }
+    .hero-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(56px, 10vw, 100px); line-height: 0.95; letter-spacing: 2px; margin-bottom: 24px; }
+    .hero-title .gold { color: var(--gold); }
+    .hero-sub { font-size: clamp(16px, 2.5vw, 20px); color: var(--muted); max-width: 560px; margin: 0 auto 40px; line-height: 1.7; }
+    .hero-ctas { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-bottom: 48px; }
+    .hero-badge { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+    .hero-badges { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; }
+    .hero-badge::before { content: '✦'; color: var(--gold); font-size: 10px; }
 
-    /* Hero poster showcase */
-    .hero-visual {
-      position: relative; display: grid;
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: 1fr 1fr;
-      gap: 12px; height: 480px;
-    }
-    .poster-card {
-      border-radius: 10px; overflow: hidden;
-      position: relative;
-      transition: transform var(--trans);
-      cursor: pointer;
-    }
-    .poster-card:hover { transform: scale(1.03); z-index: 2; }
-    .poster-card.big {
-      grid-row: span 2;
-    }
-    .poster-bg {
-      width: 100%; height: 100%;
-      display: flex; align-items: flex-end;
-      padding: 16px;
-      background-size: cover; background-position: center;
-      position: relative;
-    }
-    .poster-bg::after {
-      content: ''; position: absolute; inset: 0;
-      background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, transparent 50%);
-    }
-    /* Placeholder gradient "posters" */
-    .p1 { background: linear-gradient(135deg, #1a0a2e 0%, #4a1585 40%, #e91e8c 100%); }
-    .p2 { background: linear-gradient(135deg, #0d2137 0%, #1565c0 50%, #42a5f5 100%); }
-    .p3 { background: linear-gradient(135deg, #1b0000 0%, #b71c1c 50%, #ff5722 100%); }
-    .p4 { background: linear-gradient(135deg, #1a2a00 0%, #2e7d32 50%, #cddc39 100%); }
-    .poster-label {
-      position: relative; z-index: 1;
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 12px; letter-spacing: 2px;
-      color: rgba(255,255,255,0.7);
-    }
-    .poster-title-overlay {
-      position: absolute; top: 12px; left: 0; right: 0;
-      text-align: center; z-index: 1;
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(18px, 2.5vw, 28px);
-      letter-spacing: 3px; color: var(--gold);
-      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
-    }
-    .poster-icon {
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -60%);
-      font-size: clamp(40px, 5vw, 60px); z-index: 1;
-      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
-    }
+    /* Ticker */
+    .ticker-wrap { overflow: hidden; background: var(--gold); padding: 12px 0; }
+    .ticker-inner { display: flex; gap: 0; animation: ticker 25s linear infinite; white-space: nowrap; }
+    .ticker-item { font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 2px; color: #000; padding: 0 24px; }
+    .ticker-sep { color: rgba(0,0,0,0.4); padding: 0 8px; }
+    @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
-    /* ═══════════════════════════════════════════════════════════
-       TICKER
-    ═══════════════════════════════════════════════════════════ */
-    .ticker-wrap {
-      background: var(--gold);
-      padding: 14px 0; overflow: hidden;
-      position: relative;
-    }
-    .ticker-track {
-      display: flex; width: max-content;
-      animation: ticker 30s linear infinite;
-    }
-    @keyframes ticker {
-      from { transform: translateX(0); }
-      to { transform: translateX(-50%); }
-    }
-    .ticker-item {
-      display: flex; align-items: center; gap: 12px;
-      padding: 0 32px; white-space: nowrap;
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 15px; letter-spacing: 2px;
-      color: #0A0A0A;
-    }
-    .ticker-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(0,0,0,0.4); }
+    /* Sections */
+    section { padding: 100px 24px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .section-label { display: block; font-size: 12px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); margin-bottom: 12px; }
+    .section-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(36px, 5vw, 56px); letter-spacing: 1px; line-height: 1; }
+    .section-title .gold { color: var(--gold); }
 
-    /* ═══════════════════════════════════════════════════════════
-       HOW IT WORKS
-    ═══════════════════════════════════════════════════════════ */
-    #how {
-      padding: 100px 0;
-      background: var(--bg2);
-    }
-    .how-inner {
-      text-align: center; margin-bottom: 64px;
-    }
-    .steps {
-      display: grid; grid-template-columns: repeat(4, 1fr);
-      gap: 24px; position: relative;
-    }
-    .steps::before {
-      content: '';
-      position: absolute; top: 36px; left: 12.5%; right: 12.5%;
-      height: 1px; background: linear-gradient(90deg, transparent, var(--gold), transparent);
-    }
-    .step {
-      display: flex; flex-direction: column; align-items: center;
-      text-align: center; padding: 32px 20px;
-      background: var(--bg3); border-radius: var(--radius);
-      border: 1px solid rgba(255,255,255,0.06);
-      transition: border-color var(--trans), transform var(--trans);
-    }
-    .step:hover { border-color: rgba(212,175,55,0.3); transform: translateY(-4px); }
-    .step-num {
-      width: 72px; height: 72px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--gold-dark), var(--gold));
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: #0A0A0A;
-      margin-bottom: 24px; position: relative; z-index: 1;
-      box-shadow: 0 4px 20px rgba(212,175,55,0.3);
-    }
-    .step-icon { font-size: 28px; margin-bottom: 16px; }
-    .step h3 {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 22px; letter-spacing: 1px;
-      margin-bottom: 10px;
-    }
-    .step p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+    /* How it works */
+    #how { background: var(--bg2); }
+    .steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; margin-top: 56px; }
+    .step-card { background: var(--bg3); border-radius: var(--radius); padding: 32px 24px; border: 1px solid rgba(255,255,255,0.06); position: relative; }
+    .step-num { font-family: 'Bebas Neue', sans-serif; font-size: 64px; color: rgba(212,175,55,0.15); line-height: 1; margin-bottom: 16px; }
+    .step-icon { font-size: 32px; margin-bottom: 16px; }
+    .step-title { font-weight: 700; font-size: 17px; margin-bottom: 8px; }
+    .step-desc { font-size: 14px; color: var(--muted); line-height: 1.6; }
 
-    /* ═══════════════════════════════════════════════════════════
-       STYLES SHOWCASE
-    ═══════════════════════════════════════════════════════════ */
-    #styles {
-      padding: 100px 0;
-      background: var(--bg);
-    }
-    .styles-header {
-      display: flex; justify-content: space-between; align-items: flex-end;
-      margin-bottom: 48px; flex-wrap: wrap; gap: 20px;
-    }
-    .styles-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      grid-template-rows: 260px 260px;
-      gap: 16px;
-    }
-    .style-card {
-      border-radius: var(--radius); overflow: hidden;
-      position: relative; cursor: pointer;
-      transition: transform var(--trans);
-    }
-    .style-card:hover { transform: scale(1.02); z-index: 2; }
-    .style-card:first-child { grid-column: span 2; grid-row: span 2; }
-    .style-card:nth-child(4) { grid-column: span 2; }
-    .style-fill {
-      width: 100%; height: 100%;
-      display: flex; align-items: center; justify-content: center;
-      position: relative;
-    }
-    .s1 { background: linear-gradient(160deg, #0d0d1a 0%, #1a1042 30%, #3d2b8a 70%, #6b21d4 100%); }
-    .s2 { background: linear-gradient(160deg, #0a1628 0%, #0f3460 40%, #e94560 100%); }
-    .s3 { background: linear-gradient(160deg, #2d1b00 0%, #8b4513 50%, #d4891a 100%); }
-    .s4 { background: linear-gradient(160deg, #001a00 0%, #00401a 40%, #39ff14 100%); }
-    .s5 { background: linear-gradient(160deg, #1a0000 0%, #8b0000 40%, #ff4500 100%); }
-    .s6 { background: linear-gradient(160deg, #000a1a 0%, #001f5b 50%, #4169e1 100%); }
-    .s7 { background: linear-gradient(160deg, #1a0a00 0%, #4a1300 50%, #c0392b 100%); }
-    .style-overlay {
-      position: absolute; inset: 0;
-      background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.1) 50%, transparent 100%);
-    }
-    .style-emoji {
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -65%);
-      font-size: clamp(32px, 5vw, 60px);
-      filter: drop-shadow(0 4px 16px rgba(0,0,0,0.6));
-      z-index: 1;
-    }
-    .style-info {
-      position: absolute; bottom: 0; left: 0; right: 0;
-      padding: 20px; z-index: 2;
-    }
-    .style-name {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 20px; letter-spacing: 2px;
-      margin-bottom: 4px;
-    }
-    .style-card:first-child .style-name { font-size: 28px; }
-    .style-desc { font-size: 12px; color: rgba(255,255,255,0.6); }
-    .style-badge {
-      position: absolute; top: 14px; right: 14px;
-      background: var(--gold); color: #0A0A0A;
-      font-size: 10px; font-weight: 700; letter-spacing: 1px;
-      padding: 4px 10px; border-radius: 20px; text-transform: uppercase;
-      z-index: 2;
-    }
+    /* Styles */
+    #styles { background: var(--bg); }
+    .styles-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; flex-wrap: wrap; gap: 16px; }
+    .styles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .style-card { border-radius: var(--radius); overflow: hidden; position: relative; aspect-ratio: 2/3; background: var(--bg3); border: 1px solid rgba(255,255,255,0.07); cursor: pointer; transition: var(--trans); }
+    .style-card:hover { transform: translateY(-4px); border-color: var(--gold); }
+    .style-fill { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; }
+    .style-emoji { font-size: 48px; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-70%); opacity: 0.6; }
+    .style-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 50%); }
+    .style-info { position: relative; z-index: 1; padding: 20px; }
+    .style-name { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 1px; margin-bottom: 4px; }
+    .style-desc { font-size: 12px; color: var(--muted); }
+    .style-badge { position: absolute; top: 12px; right: 12px; background: var(--gold); color: #000; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 50px; z-index: 1; }
+    .s1 { background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460); }
+    .s2 { background: linear-gradient(135deg, #2d1b69, #11998e, #38ef7d); }
+    .s3 { background: linear-gradient(135deg, #f093fb, #f5576c, #4facfe); }
+    .s4 { background: linear-gradient(135deg, #0f0f0f, #1a0000, #330000); }
+    .s5 { background: linear-gradient(135deg, #4a3000, #8b6914, #d4a017); }
+    .s6 { background: linear-gradient(135deg, #000428, #004e92, #009ffd); }
+    .s7 { background: linear-gradient(135deg, #2c1810, #8b4513, #d2691e); }
 
-    /* ═══════════════════════════════════════════════════════════
-       PRICING
-    ═══════════════════════════════════════════════════════════ */
-    #pricing {
-      padding: 100px 0;
-      background: var(--bg2);
-    }
-    .pricing-header { text-align: center; margin-bottom: 60px; }
-    .pricing-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px; margin-bottom: 48px;
-    }
-    .price-card {
-      background: var(--bg3);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 16px; padding: 36px 28px;
-      transition: border-color var(--trans), transform var(--trans);
-      position: relative;
-    }
-    .price-card:hover { border-color: rgba(212,175,55,0.3); transform: translateY(-4px); }
-    .price-card.featured {
-      border-color: var(--gold);
-      background: linear-gradient(160deg, #1a1500 0%, #111100 100%);
-      transform: scale(1.04);
-    }
-    .price-card.featured:hover { transform: scale(1.04) translateY(-4px); }
-    .featured-badge {
-      position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
-      background: var(--gold); color: #0A0A0A;
-      font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
-      padding: 6px 18px; border-radius: 20px; text-transform: uppercase;
-      white-space: nowrap;
-    }
-    .price-icon { font-size: 36px; margin-bottom: 20px; }
-    .price-name {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 24px; letter-spacing: 2px;
-      margin-bottom: 6px;
-    }
-    .price-tagline { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
-    .price-amount {
-      display: flex; align-items: baseline; gap: 4px;
-      margin-bottom: 28px;
-    }
-    .price-currency { font-size: 22px; color: var(--gold); font-weight: 700; }
-    .price-number {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 56px; color: var(--text); line-height: 1;
-    }
-    .price-suffix { font-size: 14px; color: var(--muted); }
-    .price-features { list-style: none; margin-bottom: 32px; }
-    .price-features li {
-      display: flex; align-items: center; gap: 10px;
-      padding: 9px 0; font-size: 14px; color: var(--muted);
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-    }
-    .price-features li:last-child { border-bottom: none; }
-    .price-check { color: var(--gold); font-size: 16px; flex-shrink: 0; }
-    .price-cta { width: 100%; padding: 14px; border-radius: 50px; font-size: 15px; font-weight: 700; }
-
-    /* Bundle row */
-    .bundle-row {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
-    }
-    .bundle-card {
-      background: var(--bg3);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 16px; padding: 28px;
-      display: flex; align-items: center; gap: 24px;
-      transition: border-color var(--trans);
-    }
-    .bundle-card:hover { border-color: rgba(212,175,55,0.3); }
-    .bundle-icon { font-size: 40px; flex-shrink: 0; }
-    .bundle-name {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 22px; letter-spacing: 1px; margin-bottom: 4px;
-    }
-    .bundle-desc { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
-    .bundle-price { font-size: 22px; font-weight: 700; color: var(--gold); }
+    /* Pricing */
+    #pricing { background: var(--bg2); }
+    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-top: 56px; max-width: 700px; margin-left: auto; margin-right: auto; }
+    .price-card { background: var(--bg3); border-radius: 16px; padding: 36px 32px; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; position: relative; }
+    .price-card.featured { border-color: var(--gold); background: linear-gradient(135deg, rgba(212,175,55,0.08), var(--bg3)); }
+    .featured-badge { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: var(--gold); color: #000; font-size: 12px; font-weight: 700; padding: 4px 16px; border-radius: 50px; white-space: nowrap; }
+    .price-icon { font-size: 40px; margin-bottom: 16px; }
+    .price-name { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 1px; margin-bottom: 4px; }
+    .price-tagline { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+    .price-amount { font-family: 'Bebas Neue', sans-serif; font-size: 52px; color: var(--gold); line-height: 1; margin-bottom: 24px; }
+    .price-amount sup { font-size: 24px; vertical-align: top; margin-top: 8px; }
+    .price-features { list-style: none; flex: 1; margin-bottom: 28px; display: flex; flex-direction: column; gap: 10px; }
+    .price-features li { font-size: 14px; color: var(--muted); display: flex; align-items: flex-start; gap: 8px; }
+    .price-check { color: var(--gold); font-size: 12px; flex-shrink: 0; margin-top: 2px; }
+    .price-cta { width: 100%; padding: 15px; border-radius: 50px; font-size: 15px; }
 
     /* Upsells */
-    .upsell-section { margin-top: 60px; }
-    .upsell-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 28px; letter-spacing: 2px;
-      text-align: center; margin-bottom: 32px;
-    }
-    .upsells-grid {
-      display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px;
-    }
-    .upsell-card {
-      background: var(--bg3); border: 1px solid rgba(255,255,255,0.06);
-      border-radius: var(--radius); padding: 20px 16px; text-align: center;
-      transition: border-color var(--trans), transform var(--trans);
-    }
-    .upsell-card:hover { border-color: rgba(212,175,55,0.3); transform: translateY(-3px); }
-    .upsell-emoji { font-size: 28px; margin-bottom: 10px; }
-    .upsell-name { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
-    .upsell-price { font-size: 18px; font-weight: 700; color: var(--gold); }
+    .upsell-section { margin-top: 40px; }
+    .upsell-title { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 1px; text-align: center; margin-bottom: 20px; }
+    .upsells-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+    .upsell-card { background: var(--bg3); border-radius: var(--radius); padding: 20px; border: 1px solid rgba(255,255,255,0.07); display: flex; align-items: center; gap: 14px; }
+    .upsell-icon { font-size: 28px; flex-shrink: 0; }
+    .upsell-name { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+    .upsell-desc { font-size: 12px; color: var(--muted); }
+    .upsell-price { font-weight: 700; color: var(--gold); font-size: 14px; margin-left: auto; flex-shrink: 0; }
 
-    /* ═══════════════════════════════════════════════════════════
-       TESTIMONIALS
-    ═══════════════════════════════════════════════════════════ */
-    #reviews {
-      padding: 100px 0;
-      background: var(--bg);
-    }
-    .reviews-header { text-align: center; margin-bottom: 60px; }
-    .reviews-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
-    }
-    .review-card {
-      background: var(--bg3); border: 1px solid rgba(255,255,255,0.06);
-      border-radius: var(--radius); padding: 28px;
-      transition: border-color var(--trans);
-    }
-    .review-card:hover { border-color: rgba(212,175,55,0.2); }
-    .review-stars { color: var(--gold); font-size: 16px; margin-bottom: 16px; }
-    .review-text { font-size: 15px; line-height: 1.7; color: var(--muted); margin-bottom: 24px; font-style: italic; }
-    .review-text strong { color: var(--text); font-style: normal; }
-    .review-author { display: flex; align-items: center; gap: 12px; }
-    .review-avatar {
-      width: 44px; height: 44px; border-radius: 50%;
-      background: var(--bg4); display: flex; align-items: center; justify-content: center;
-      font-size: 20px; flex-shrink: 0;
-    }
-    .review-name { font-weight: 600; font-size: 14px; }
-    .review-meta { font-size: 12px; color: var(--muted); }
+    /* Reviews */
+    #reviews { background: var(--bg); }
+    .reviews-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 48px; }
+    .review-card { background: var(--bg2); border-radius: var(--radius); padding: 24px; border: 1px solid rgba(255,255,255,0.06); }
+    .review-stars { color: var(--gold); font-size: 14px; margin-bottom: 12px; }
+    .review-text { font-size: 14px; color: var(--muted); line-height: 1.7; margin-bottom: 16px; font-style: italic; }
+    .review-author { font-weight: 600; font-size: 13px; }
 
-    /* ═══════════════════════════════════════════════════════════
-       FAQ
-    ═══════════════════════════════════════════════════════════ */
-    #faq {
-      padding: 100px 0;
-      background: var(--bg2);
-    }
-    .faq-inner { max-width: 740px; margin: 0 auto; }
-    .faq-header { text-align: center; margin-bottom: 52px; }
-    .faq-item {
-      border-bottom: 1px solid rgba(255,255,255,0.07);
-    }
-    .faq-q {
-      width: 100%; text-align: left;
-      background: none; border: none; color: var(--text);
-      font-size: 16px; font-weight: 600;
-      padding: 22px 0;
-      display: flex; justify-content: space-between; align-items: center; gap: 16px;
-      cursor: pointer; transition: color var(--trans);
-    }
-    .faq-q:hover { color: var(--gold); }
-    .faq-arrow {
-      color: var(--gold); font-size: 20px;
-      transition: transform var(--trans); flex-shrink: 0;
-    }
-    .faq-a {
-      max-height: 0; overflow: hidden;
-      transition: max-height 0.4s ease, padding 0.3s ease;
-    }
-    .faq-a-inner {
-      font-size: 15px; color: var(--muted); line-height: 1.8;
-      padding-bottom: 20px;
-    }
-    .faq-item.open .faq-arrow { transform: rotate(45deg); }
-    .faq-item.open .faq-a { max-height: 300px; }
+    /* FAQ */
+    #faq { background: var(--bg2); }
+    .faq-list { margin-top: 48px; max-width: 700px; display: flex; flex-direction: column; gap: 4px; }
+    .faq-item { border-radius: var(--radius); overflow: hidden; }
+    .faq-q { width: 100%; background: var(--bg3); color: var(--text); font-size: 15px; font-weight: 600; padding: 18px 20px; text-align: left; display: flex; justify-content: space-between; align-items: center; gap: 12px; transition: var(--trans); }
+    .faq-q:hover { background: var(--bg4); }
+    .faq-icon { color: var(--gold); font-size: 20px; flex-shrink: 0; transition: var(--trans); }
+    .faq-a { background: var(--bg3); color: var(--muted); font-size: 14px; line-height: 1.7; padding: 0 20px; max-height: 0; overflow: hidden; transition: max-height 0.35s ease, padding 0.35s ease; }
+    .faq-a.open { max-height: 300px; padding: 0 20px 18px; }
 
-    /* ═══════════════════════════════════════════════════════════
-       CTA BANNER
-    ═══════════════════════════════════════════════════════════ */
-    #cta-banner {
-      padding: 100px 24px;
-      background: linear-gradient(135deg, #0D0B07 0%, #1A1300 50%, #0D0B07 100%);
-      position: relative; overflow: hidden; text-align: center;
-    }
-    #cta-banner::before {
-      content: '';
-      position: absolute; inset: 0;
-      background: radial-gradient(ellipse 60% 60% at 50% 50%, rgba(212,175,55,0.1) 0%, transparent 70%);
-    }
-    .cta-banner-inner { position: relative; z-index: 1; }
-    .cta-banner-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(40px, 7vw, 80px); line-height: 1.05;
-      margin-bottom: 20px;
-    }
-    .cta-banner-sub {
-      font-size: 18px; color: var(--muted); margin-bottom: 40px; max-width: 500px; margin-left: auto; margin-right: auto;
-    }
+    /* CTA */
+    #cta-banner { background: linear-gradient(135deg, rgba(212,175,55,0.08) 0%, var(--bg2) 100%); border-top: 1px solid rgba(212,175,55,0.15); border-bottom: 1px solid rgba(212,175,55,0.15); padding: 80px 24px; text-align: center; }
+    .cta-banner-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(36px, 5vw, 64px); letter-spacing: 2px; margin-bottom: 16px; }
+    .cta-banner-sub { color: var(--muted); font-size: 17px; margin-bottom: 36px; }
 
-    /* ═══════════════════════════════════════════════════════════
-       FOOTER
-    ═══════════════════════════════════════════════════════════ */
-    footer {
-      background: #050505;
-      border-top: 1px solid rgba(255,255,255,0.05);
-      padding: 60px 24px 32px;
-    }
-    .footer-inner {
-      max-width: 1200px; margin: 0 auto;
-    }
-    .footer-top {
-      display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
-      gap: 48px; margin-bottom: 48px;
-    }
-    .footer-brand-logo {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 28px; letter-spacing: 2px;
-      margin-bottom: 16px;
-    }
-    .footer-brand-logo span { color: var(--gold); }
-    .footer-brand-desc { font-size: 14px; color: var(--muted); line-height: 1.7; max-width: 260px; }
-    .footer-col-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 16px; letter-spacing: 2px;
-      margin-bottom: 20px; color: var(--muted);
-    }
-    .footer-links { list-style: none; }
-    .footer-links li { margin-bottom: 12px; }
-    .footer-links a { font-size: 14px; color: var(--muted); transition: color var(--trans); }
-    .footer-links a:hover { color: var(--gold); }
-    .footer-bottom {
-      display: flex; justify-content: space-between; align-items: center;
-      padding-top: 32px; border-top: 1px solid rgba(255,255,255,0.05);
-      flex-wrap: wrap; gap: 12px;
-    }
+    /* Footer */
+    footer { background: var(--bg); padding: 48px 24px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .footer-inner { max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+    .footer-logo { font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 2px; }
+    .footer-logo span { color: var(--gold); }
     .footer-copy { font-size: 13px; color: var(--muted); }
-    .footer-legal { display: flex; gap: 24px; }
-    .footer-legal a { font-size: 13px; color: var(--muted); transition: color var(--trans); }
-    .footer-legal a:hover { color: var(--text); }
 
-    /* ═══════════════════════════════════════════════════════════
-       ORDER MODAL
-    ═══════════════════════════════════════════════════════════ */
-    .modal-overlay {
-      position: fixed; inset: 0; z-index: 2000;
-      background: rgba(0,0,0,0.85);
-      backdrop-filter: blur(8px);
-      display: flex; align-items: center; justify-content: center;
-      padding: 20px;
-      opacity: 0; pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-    .modal-overlay.active { opacity: 1; pointer-events: all; }
-    .modal {
-      background: var(--bg2);
-      border: 1px solid rgba(212,175,55,0.2);
-      border-radius: 20px; width: 100%; max-width: 680px;
-      max-height: 90vh; overflow-y: auto;
-      transform: translateY(20px);
-      transition: transform 0.3s ease;
-    }
-    .modal-overlay.active .modal { transform: translateY(0); }
-    .modal-header {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 28px 32px; border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-    .modal-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 28px; letter-spacing: 2px;
-    }
-    .modal-close {
-      background: none; border: none; color: var(--muted);
-      font-size: 24px; transition: color var(--trans); line-height: 1;
-    }
-    .modal-close:hover { color: var(--text); }
-    .modal-body { padding: 32px; }
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(8px); opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal-box { background: var(--bg2); border-radius: 20px; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 32px 80px rgba(0,0,0,0.6); position: relative; }
+    .modal-close { position: absolute; top: 16px; right: 16px; background: var(--bg3); color: var(--muted); width: 32px; height: 32px; border-radius: 50%; font-size: 18px; display: flex; align-items: center; justify-content: center; z-index: 10; transition: var(--trans); }
+    .modal-close:hover { color: var(--text); background: var(--bg4); }
+    .modal-header { padding: 28px 28px 0; }
+    .modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 1px; margin-bottom: 4px; }
+    .modal-sub { font-size: 13px; color: var(--muted); }
+    .modal-body { padding: 20px 28px 28px; }
 
-    /* Steps indicator */
-    .order-steps {
-      display: flex; gap: 0; margin-bottom: 36px;
-      border-radius: 50px; overflow: hidden;
-      background: var(--bg3); padding: 4px;
-    }
-    .order-step-pill {
-      flex: 1; text-align: center; padding: 10px;
-      font-size: 13px; font-weight: 600;
-      border-radius: 50px; transition: background var(--trans), color var(--trans);
-      color: var(--muted);
-    }
-    .order-step-pill.active {
-      background: var(--gold); color: #0A0A0A;
-    }
-    .order-step-pill.done { color: var(--gold); }
+    /* Steps progress */
+    .steps-progress { display: flex; gap: 8px; margin-bottom: 24px; }
+    .step-dot { height: 3px; flex: 1; border-radius: 2px; background: var(--bg4); transition: var(--trans); }
+    .step-dot.active { background: var(--gold); }
+    .step-dot.done { background: rgba(212,175,55,0.4); }
 
     /* Step panels */
     .step-panel { display: none; }
     .step-panel.active { display: block; }
 
-    /* Product picker grid */
-    .product-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .product-option {
-      background: var(--bg3); border: 2px solid rgba(255,255,255,0.07);
-      border-radius: 12px; padding: 20px; cursor: pointer;
-      transition: border-color var(--trans), background var(--trans);
-    }
+    /* Product options */
+    .product-options { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+    .product-option { border: 1.5px solid rgba(255,255,255,0.1); border-radius: var(--radius); padding: 16px 18px; cursor: pointer; transition: var(--trans); display: flex; align-items: center; gap: 14px; }
     .product-option:hover { border-color: rgba(212,175,55,0.4); }
     .product-option.selected { border-color: var(--gold); background: rgba(212,175,55,0.07); }
-    .product-option-icon { font-size: 28px; margin-bottom: 10px; }
-    .product-option-name { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
-    .product-option-price { color: var(--gold); font-size: 18px; font-weight: 700; }
-    .product-option-desc { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .product-option-icon { font-size: 28px; }
+    .product-option-info { flex: 1; }
+    .product-option-name { font-weight: 700; font-size: 15px; margin-bottom: 2px; }
+    .product-option-desc { font-size: 12px; color: var(--muted); }
+    .product-option-price { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--gold); }
 
     /* Style picker */
-    .style-picker { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-    .style-option {
-      background: var(--bg3); border: 2px solid rgba(255,255,255,0.07);
-      border-radius: 10px; padding: 14px 10px; cursor: pointer;
-      text-align: center; transition: border-color var(--trans);
-    }
+    .style-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .style-option { border: 1.5px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: var(--trans); text-align: center; }
     .style-option:hover { border-color: rgba(212,175,55,0.4); }
-    .style-option.selected { border-color: var(--gold); }
-    .style-option-emoji { font-size: 24px; margin-bottom: 6px; }
-    .style-option-name { font-size: 11px; font-weight: 600; color: var(--muted); }
-    .style-option.selected .style-option-name { color: var(--gold); }
+    .style-option.selected { border-color: var(--gold); background: rgba(212,175,55,0.07); }
+    .style-option-emoji { font-size: 22px; margin-bottom: 4px; }
+    .style-option-name { font-size: 12px; font-weight: 600; }
+
+    /* Upload */
+    .upload-area { border: 2px dashed rgba(255,255,255,0.15); border-radius: var(--radius); padding: 32px 20px; text-align: center; cursor: pointer; transition: var(--trans); margin-bottom: 20px; background-size: cover; background-position: center; min-height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+    .upload-area:hover { border-color: var(--gold); }
+    .upload-area.has-photo { border-color: var(--gold); border-style: solid; }
+    .upload-icon { font-size: 32px; }
+    .upload-text { font-size: 14px; font-weight: 600; }
+    .upload-sub { font-size: 12px; color: var(--muted); }
+    input[type="file"] { display: none; }
 
     /* Form fields */
-    .field-group { margin-bottom: 20px; }
-    .field-label {
-      display: block; font-size: 13px; font-weight: 600;
-      color: var(--muted); text-transform: uppercase; letter-spacing: 1px;
-      margin-bottom: 8px;
-    }
-    .field-input {
-      width: 100%; background: var(--bg3); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px; padding: 14px 16px;
-      color: var(--text); font-size: 15px; font-family: inherit;
-      transition: border-color var(--trans);
-    }
+    .field-group { margin-bottom: 16px; }
+    .field-label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .field-input { width: 100%; background: var(--bg3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--text); font-size: 14px; padding: 12px 14px; font-family: inherit; transition: var(--trans); }
     .field-input:focus { outline: none; border-color: var(--gold); }
-    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-
-    /* Upload area */
-    .upload-area {
-      border: 2px dashed rgba(212,175,55,0.3); border-radius: 14px;
-      padding: 48px 20px; text-align: center; cursor: pointer;
-      transition: border-color var(--trans), background var(--trans);
-      background: var(--bg3);
-    }
-    .upload-area:hover { border-color: var(--gold); background: rgba(212,175,55,0.04); }
-    .upload-area.has-file { border-color: var(--gold); background: rgba(212,175,55,0.06); }
-    .upload-icon { font-size: 40px; margin-bottom: 12px; }
-    .upload-text { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
-    .upload-sub { font-size: 13px; color: var(--muted); }
-    #file-input { display: none; }
 
     /* Upsell toggles */
-    .upsell-toggles { display: flex; flex-direction: column; gap: 12px; }
-    .upsell-toggle {
-      display: flex; align-items: center; justify-content: space-between;
-      background: var(--bg3); border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 10px; padding: 14px 16px; cursor: pointer;
-      transition: border-color var(--trans);
-    }
+    .modal-upsells { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+    .upsell-toggle { border: 1.5px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: var(--trans); display: flex; align-items: center; gap: 12px; }
     .upsell-toggle:hover { border-color: rgba(212,175,55,0.3); }
-    .upsell-toggle.checked { border-color: var(--gold); background: rgba(212,175,55,0.06); }
-    .upsell-toggle-left { display: flex; align-items: center; gap: 12px; }
-    .upsell-toggle-emoji { font-size: 20px; }
-    .upsell-toggle-name { font-size: 14px; font-weight: 600; }
-    .upsell-toggle-desc { font-size: 12px; color: var(--muted); }
-    .upsell-toggle-right { display: flex; align-items: center; gap: 12px; }
-    .upsell-toggle-price { color: var(--gold); font-weight: 700; font-size: 15px; }
-    .toggle-checkbox {
-      width: 22px; height: 22px; border-radius: 6px;
-      border: 2px solid rgba(255,255,255,0.2); background: transparent;
-      display: flex; align-items: center; justify-content: center;
-      transition: background var(--trans), border-color var(--trans); flex-shrink: 0;
-    }
-    .upsell-toggle.checked .toggle-checkbox {
-      background: var(--gold); border-color: var(--gold);
-    }
-    .toggle-check { color: #0A0A0A; font-size: 13px; opacity: 0; transition: opacity var(--trans); }
-    .upsell-toggle.checked .toggle-check { opacity: 1; }
+    .upsell-toggle.active { border-color: var(--gold); background: rgba(212,175,55,0.06); }
+    .upsell-toggle-icon { font-size: 20px; }
+    .upsell-toggle-info { flex: 1; }
+    .upsell-toggle-name { font-size: 13px; font-weight: 600; }
+    .upsell-toggle-desc { font-size: 11px; color: var(--muted); }
+    .upsell-toggle-right { display: flex; align-items: center; gap: 8px; }
+    .upsell-toggle-price { font-size: 13px; font-weight: 700; color: var(--gold); }
+    .toggle-checkbox { width: 20px; height: 20px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; transition: var(--trans); }
+    .upsell-toggle.active .toggle-checkbox { background: var(--gold); border-color: var(--gold); }
+    .toggle-check { font-size: 11px; color: #000; display: none; }
+    .upsell-toggle.active .toggle-check { display: block; }
 
     /* Order summary */
-    .order-summary {
-      background: var(--bg3); border-radius: 12px; padding: 20px;
-      margin-bottom: 24px;
-    }
-    .summary-row {
-      display: flex; justify-content: space-between;
-      font-size: 14px; padding: 7px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-    }
-    .summary-row:last-child { border-bottom: none; }
-    .summary-row.total {
-      font-weight: 700; font-size: 18px; color: var(--text);
-      border-top: 1px solid rgba(255,255,255,0.1); padding-top: 14px; margin-top: 6px;
-    }
+    .order-summary { background: var(--bg3); border-radius: var(--radius); padding: 16px; margin-bottom: 20px; }
+    .summary-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); padding: 4px 0; }
+    .summary-row.total { border-top: 1px solid rgba(255,255,255,0.08); margin-top: 8px; padding-top: 10px; font-weight: 700; font-size: 16px; color: var(--text); }
     .summary-row.total .val { color: var(--gold); }
 
-    /* Stripe placeholder */
-    #stripe-element-placeholder {
-      background: var(--bg3); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px; padding: 18px 16px;
-      margin-bottom: 20px; font-size: 14px; color: var(--muted);
-      text-align: center;
-    }
-    .stripe-badge {
-      display: flex; align-items: center; justify-content: center;
-      gap: 8px; font-size: 12px; color: var(--muted); margin-top: 12px;
-    }
+    /* Stripe element */
+    #stripe-card-element { min-height: 44px; margin-bottom: 16px; }
+    .card-errors { color: var(--red); font-size: 13px; min-height: 18px; margin-bottom: 12px; }
+    .stripe-secure { font-size: 12px; color: var(--muted); text-align: center; margin-bottom: 20px; }
 
-    /* Nav buttons */
-    .modal-nav {
-      display: flex; gap: 12px; margin-top: 28px;
-    }
-    .btn-back {
-      background: none; border: 1px solid rgba(255,255,255,0.15);
-      color: var(--muted); border-radius: 50px; padding: 13px 24px;
-      font-weight: 600; transition: var(--trans);
-    }
-    .btn-back:hover { border-color: rgba(255,255,255,0.3); color: var(--text); }
-    .btn-next { flex: 1; }
+    /* Modal nav */
+    .modal-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; gap: 12px; }
+    .btn-next { flex: 1; padding: 15px; border-radius: 50px; font-size: 15px; font-weight: 700; }
+    .btn-next:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
 
-    /* ═══════════════════════════════════════════════════════════
-       RESPONSIVE
-    ═══════════════════════════════════════════════════════════ */
-    @media (max-width: 1024px) {
-      .steps { grid-template-columns: repeat(2, 1fr); }
-      .steps::before { display: none; }
-      .styles-grid {
-        grid-template-columns: repeat(2, 1fr);
-        grid-template-rows: auto;
-      }
-      .style-card:first-child { grid-column: span 2; height: 300px; }
-      .style-card:nth-child(4) { grid-column: span 1; }
-      .pricing-grid { grid-template-columns: 1fr 1fr; }
-      .upsells-grid { grid-template-columns: repeat(3, 1fr); }
-      .footer-top { grid-template-columns: 1fr 1fr; }
-      .reviews-grid { grid-template-columns: 1fr 1fr; }
-    }
-    @media (max-width: 768px) {
-      .hero-inner { grid-template-columns: 1fr; gap: 48px; }
-      .hero-visual { height: 320px; }
-      .nav-links { display: none; }
-      .nav-mobile-toggle { display: flex; }
-      .pricing-grid { grid-template-columns: 1fr; }
-      .price-card.featured { transform: none; }
-      .bundle-row { grid-template-columns: 1fr; }
-      .upsells-grid { grid-template-columns: repeat(2, 1fr); }
-      .reviews-grid { grid-template-columns: 1fr; }
-      .footer-top { grid-template-columns: 1fr; gap: 32px; }
-      .product-picker { grid-template-columns: 1fr; }
-      .style-picker { grid-template-columns: repeat(3, 1fr); }
-      .field-row { grid-template-columns: 1fr; }
-      .modal-body { padding: 20px; }
-      .modal-header { padding: 20px; }
+    /* Generating / success screens */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .generating-spinner { font-size: 52px; animation: spin 3s linear infinite; display: inline-block; margin-bottom: 20px; }
+    .generating-dots span { animation: pulse 1.4s ease infinite; }
+    .generating-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .generating-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @media (max-width: 600px) {
+      .style-options { grid-template-columns: 1fr 1fr; }
+      .modal-box { max-height: 95vh; }
+      .modal-header, .modal-body { padding-left: 20px; padding-right: 20px; }
     }
   </style>
 </head>
 <body>
 
-  <!-- ══════════════════════════════════ NAV ══════════════════════════════════ -->
-  <nav id="nav">
-    <div class="nav-inner">
-      <a href="#" class="nav-logo">Poster<span>AI</span></a>
-      <ul class="nav-links">
-        <li><a href="#how">How It Works</a></li>
-        <li><a href="#styles">Styles</a></li>
-        <li><a href="#pricing">Pricing</a></li>
-        <li><a href="#reviews">Reviews</a></li>
-        <li><a href="#faq">FAQ</a></li>
-        <li><button class="btn-gold nav-cta" onclick="openModal()">Create Yours →</button></li>
-      </ul>
-      <button class="nav-mobile-toggle" onclick="toggleMobileMenu()" aria-label="Menu">
-        <span></span><span></span><span></span>
-      </button>
-    </div>
-  </nav>
-
-  <!-- Mobile nav -->
-  <div id="mobile-menu" style="display:none; position:fixed; top:68px; left:0; right:0; z-index:999; background:rgba(10,10,10,0.97); padding:24px; border-bottom:1px solid rgba(255,255,255,0.07); backdrop-filter:blur(16px);">
-    <ul style="list-style:none; display:flex; flex-direction:column; gap:20px;">
-      <li><a href="#how" onclick="closeMobileMenu()" style="font-size:18px; font-weight:600;">How It Works</a></li>
-      <li><a href="#styles" onclick="closeMobileMenu()" style="font-size:18px; font-weight:600;">Styles</a></li>
-      <li><a href="#pricing" onclick="closeMobileMenu()" style="font-size:18px; font-weight:600;">Pricing</a></li>
-      <li><a href="#reviews" onclick="closeMobileMenu()" style="font-size:18px; font-weight:600;">Reviews</a></li>
-      <li><a href="#faq" onclick="closeMobileMenu()" style="font-size:18px; font-weight:600;">FAQ</a></li>
-      <li><button class="btn-gold" style="width:100%;" onclick="openModal(); closeMobileMenu()">Create Yours →</button></li>
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">Poster<span>AI</span></a>
+    <ul class="nav-links">
+      <li><a href="#how">How It Works</a></li>
+      <li><a href="#styles">Styles</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#reviews">Reviews</a></li>
+      <li><button class="btn-gold nav-cta" onclick="openModal()">Create Yours →</button></li>
     </ul>
+    <button class="nav-mobile-toggle" onclick="toggleMobileMenu()"><span></span><span></span><span></span></button>
   </div>
+</nav>
+<div id="mobile-menu" style="display:none;position:fixed;top:68px;left:0;right:0;z-index:99;background:rgba(10,10,10,0.97);padding:24px;border-bottom:1px solid rgba(255,255,255,0.07);backdrop-filter:blur(16px);">
+  <ul style="list-style:none;display:flex;flex-direction:column;gap:20px;">
+    <li><a href="#how" onclick="closeMobileMenu()" style="font-size:18px;font-weight:600;">How It Works</a></li>
+    <li><a href="#styles" onclick="closeMobileMenu()" style="font-size:18px;font-weight:600;">Styles</a></li>
+    <li><a href="#pricing" onclick="closeMobileMenu()" style="font-size:18px;font-weight:600;">Pricing</a></li>
+    <li><a href="#reviews" onclick="closeMobileMenu()" style="font-size:18px;font-weight:600;">Reviews</a></li>
+    <li><button class="btn-gold" style="width:100%;" onclick="openModal();closeMobileMenu()">Create Yours →</button></li>
+  </ul>
+</div>
 
-  <!-- ══════════════════════════════════ HERO ══════════════════════════════════ -->
-  <section id="hero">
-    <div class="hero-bg"></div>
-    <div class="hero-inner">
-      <div class="hero-content">
-        <div class="hero-eyebrow">
-          <div class="hero-eyebrow-dot"></div>
-          <span class="hero-eyebrow-text">AI-Powered Personalized Art</span>
-        </div>
-        <h1 class="hero-headline">
-          Turn Any<br/>
-          <span class="line2">Memory</span><br/>
-          Into a Movie<br/>
-          Poster.
-        </h1>
-        <p class="hero-sub">
-          Upload a photo. Pick a style. We transform it into
-          <strong>Hollywood-quality personalized art</strong> — the gift
-          everyone actually talks about.
-        </p>
-        <div class="hero-ctas">
-          <button class="btn-gold" onclick="openModal()">Create Your Poster →</button>
-          <a href="#styles" class="btn-outline">See Styles ↓</a>
-        </div>
-        <div class="hero-social-proof">
-          <div class="hero-avatars">
-            <div class="hero-avatar">😊</div>
-            <div class="hero-avatar">👨‍👩‍👧</div>
-            <div class="hero-avatar">🐕</div>
-            <div class="hero-avatar">💑</div>
-            <div class="hero-avatar">🎉</div>
-          </div>
-          <div>
-            <div class="hero-stars">★★★★★</div>
-            <div class="hero-proof-text"><strong>4,800+</strong> posters created this month</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="hero-visual">
-        <div class="poster-card big">
-          <div class="poster-bg p1">
-            <div class="poster-title-overlay">THE ADVENTURES</div>
-            <div class="poster-icon">🦸</div>
-            <div class="poster-label">SUPERHERO EDITION</div>
-          </div>
-        </div>
-        <div class="poster-card">
-          <div class="poster-bg p2">
-            <div class="poster-title-overlay">OUR STORY</div>
-            <div class="poster-icon">💑</div>
-            <div class="poster-label">HOLLYWOOD STYLE</div>
-          </div>
-        </div>
-        <div class="poster-card">
-          <div class="poster-bg p3">
-            <div class="poster-title-overlay">MIDNIGHT TALES</div>
-            <div class="poster-icon">🎃</div>
-            <div class="poster-label">HORROR EDITION</div>
-          </div>
-        </div>
-      </div>
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-inner">
+    <span class="hero-label">⚡ AI-Generated in Minutes</span>
+    <h1 class="hero-title">Your Photo.<br/>A <span class="gold">Hollywood</span><br/>Poster.</h1>
+    <p class="hero-sub">Upload a photo, pick a style, and our AI transforms it into a cinematic movie poster — delivered straight to your inbox in minutes.</p>
+    <div class="hero-ctas">
+      <button class="btn-gold" style="font-size:17px;padding:16px 40px;" onclick="openModal()">Create My Poster →</button>
+      <a href="#how" class="btn-outline">See How It Works ↓</a>
     </div>
-  </section>
-
-  <!-- ══════════════════════════════ TICKER ══════════════════════════════ -->
-  <div class="ticker-wrap">
-    <div class="ticker-track">
-      <div class="ticker-item"><span>🎬 Hollywood Movie Poster</span><span class="ticker-dot"></span></div>
-      <div class="ticker-item"><span>✨ Pixar-Style Illustration</span><span class="ticker-dot"></span></div>
-      <div class="ticker-item"><span>⚔️ Anime Poster</span><span class="ticker-dot"></span></div>
-      <div class="ticker-item"><span>🗺️ Vintage Travel Poster</span><span class="ticker-dot"></span></div>
-      <div class="ticker-item"><span>🎃 Horror Movie Cover</span><span class="ticker-dot"></span></div>
-      <div class="ticker-item"><span>🦸 Superhero Poster</span><span class="ticker-dot"></span></div>
-      <div class="ticker-item"><span>🐉 Fantasy Cover</span><span class="ticker-dot"></span></div>
-      <div class="ticker-item"><span>🎬 Hollywood Movie Poster</span><span class="ticker-dot"></span></div>
-      <div class="ticker-item"><span>✨ Pixar-Style Illustration</span><span class="ticker-dot"></span></div>
-      <div class="ticker-item"><span>⚔️ Anime Poster</span><span class="ticker-dot"></span></div>
-      <div class="ticker-item"><span>🗺️ Vintage Travel Poster</span><span class="ticker-dot"></span></div>
-      <div class="ticker-item"><span>🎃 Horror Movie Cover</span><span class="ticker-dot"></span></div>
-      <div class="ticker-item"><span>🦸 Superhero Poster</span><span class="ticker-dot"></span></div>
-      <div class="ticker-item"><span>🐉 Fantasy Cover</span><span class="ticker-dot"></span></div>
+    <div class="hero-badges">
+      <span class="hero-badge">Delivered in minutes</span>
+      <span class="hero-badge">7 cinematic styles</span>
+      <span class="hero-badge">Free revisions</span>
+      <span class="hero-badge">No design skills needed</span>
     </div>
   </div>
+</section>
 
-  <!-- ══════════════════════════════ HOW IT WORKS ══════════════════════════════ -->
-  <section id="how">
-    <div class="container">
-      <div class="how-inner">
-        <span class="section-label">The Process</span>
-        <h2 class="section-title">Done in <span class="gold-text">4 Simple Steps</span></h2>
-        <p class="section-sub" style="margin:0 auto;">From photo to masterpiece in minutes. No design skills needed.</p>
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker-inner">
+    <span class="ticker-item">HOLLYWOOD BLOCKBUSTER</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">PIXAR ANIMATION</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">ANIME STYLE</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">HORROR THRILLER</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">VINTAGE RETRO</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">SCI-FI EPIC</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">ROMANCE DRAMA</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">HOLLYWOOD BLOCKBUSTER</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">PIXAR ANIMATION</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">ANIME STYLE</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">HORROR THRILLER</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">VINTAGE RETRO</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">SCI-FI EPIC</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">ROMANCE DRAMA</span><span class="ticker-sep">✦</span>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="container">
+    <span class="section-label">Simple Process</span>
+    <h2 class="section-title">Fully <span class="gold">Automated</span> — Done in Minutes</h2>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num">01</div>
+        <div class="step-icon">📸</div>
+        <div class="step-title">Upload Your Photo</div>
+        <div class="step-desc">Any photo works — solo shots, couples, families, pets. The clearer the face, the better the result.</div>
       </div>
-      <div class="steps">
-        <div class="step">
-          <div class="step-num">1</div>
-          <div class="step-icon">📸</div>
-          <h3>Upload Your Photo</h3>
-          <p>Any photo works — couple selfie, family pic, pet photo, or group shot. The better the photo, the better the result.</p>
-        </div>
-        <div class="step">
-          <div class="step-num">2</div>
-          <div class="step-icon">🎨</div>
-          <h3>Choose Your Style</h3>
-          <p>Pick from 7 cinematic styles — Hollywood, Pixar, Anime, Vintage, Horror, Superhero, or Fantasy.</p>
-        </div>
-        <div class="step">
-          <div class="step-num">3</div>
-          <div class="step-icon">✍️</div>
-          <h3>Add Your Details</h3>
-          <p>Enter names, a date, and a quote or tagline. We work them into the poster like a real movie production.</p>
-        </div>
-        <div class="step">
-          <div class="step-num">4</div>
-          <div class="step-icon">🎁</div>
-          <h3>Get Your Poster</h3>
-          <p>Receive your digital file within 24 hours. Choose a physical print and we ship it straight to your door.</p>
-        </div>
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <div class="step-icon">🎬</div>
+        <div class="step-title">Choose Your Style</div>
+        <div class="step-desc">Pick from 7 cinematic styles — Hollywood Blockbuster, Anime, Horror, Sci-Fi, and more.</div>
       </div>
-    </div>
-  </section>
-
-  <!-- ══════════════════════════════ STYLES ══════════════════════════════ -->
-  <section id="styles">
-    <div class="container">
-      <div class="styles-header">
-        <div>
-          <span class="section-label">7 Cinematic Styles</span>
-          <h2 class="section-title">Pick Your <span class="gold-text">Universe</span></h2>
-        </div>
-        <button class="btn-gold" onclick="openModal()">Create Yours →</button>
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <div class="step-icon">⚡</div>
+        <div class="step-title">AI Generates It</div>
+        <div class="step-desc">Our AI model processes your photo and transforms it into a professional movie poster in real time.</div>
       </div>
-      <div class="styles-grid">
-        <div class="style-card">
-          <div class="style-fill s1">
-            <div class="style-emoji">🎬</div>
-            <div class="style-overlay"></div>
-            <div class="style-badge">Most Popular</div>
-            <div class="style-info">
-              <div class="style-name">Hollywood Movie Poster</div>
-              <div class="style-desc">Epic dramatic composition with cinematic lighting and professional typography</div>
-            </div>
-          </div>
-        </div>
-        <div class="style-card">
-          <div class="style-fill s2">
-            <div class="style-emoji">✨</div>
-            <div class="style-overlay"></div>
-            <div class="style-info">
-              <div class="style-name">Pixar Style</div>
-              <div class="style-desc">Warm, heartfelt 3D-animated illustration</div>
-            </div>
-          </div>
-        </div>
-        <div class="style-card">
-          <div class="style-fill s3">
-            <div class="style-emoji">⚔️</div>
-            <div class="style-overlay"></div>
-            <div class="style-info">
-              <div class="style-name">Anime Poster</div>
-              <div class="style-desc">Japanese animation style with vivid colors</div>
-            </div>
-          </div>
-        </div>
-        <div class="style-card">
-          <div class="style-fill s4">
-            <div class="style-emoji">🗺️</div>
-            <div class="style-overlay"></div>
-            <div class="style-info">
-              <div class="style-name">Vintage Travel</div>
-              <div class="style-desc">Retro travel poster with aged textures</div>
-            </div>
-          </div>
-        </div>
-        <div class="style-card">
-          <div class="style-fill s5">
-            <div class="style-emoji">🎃</div>
-            <div class="style-overlay"></div>
-            <div class="style-info">
-              <div class="style-name">Horror Movie</div>
-              <div class="style-desc">Dark, suspenseful B-movie energy</div>
-            </div>
-          </div>
-        </div>
-        <div class="style-card">
-          <div class="style-fill s6">
-            <div class="style-emoji">🦸</div>
-            <div class="style-overlay"></div>
-            <div class="style-info">
-              <div class="style-name">Superhero</div>
-              <div class="style-desc">Marvel / DC-inspired epic action poster</div>
-            </div>
-          </div>
-        </div>
-        <div class="style-card">
-          <div class="style-fill s7">
-            <div class="style-emoji">🐉</div>
-            <div class="style-overlay"></div>
-            <div class="style-info">
-              <div class="style-name">Fantasy Cover</div>
-              <div class="style-desc">Epic fantasy book cover illustration</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══════════════════════════════ PRICING ══════════════════════════════ -->
-  <section id="pricing">
-    <div class="container">
-      <div class="pricing-header">
-        <span class="section-label">Pricing</span>
-        <h2 class="section-title">Pick Your <span class="gold-text">Format</span></h2>
-        <p class="section-sub" style="margin:0 auto;">Every order includes unlimited revisions until you love it.</p>
-      </div>
-
-      <div class="pricing-grid">
-        <!-- Digital -->
-        <div class="price-card">
-          <div class="price-icon">💻</div>
-          <div class="price-name">Digital Download</div>
-          <div class="price-tagline">Instant delivery to your inbox</div>
-          <div class="price-amount">
-            <span class="price-currency">$</span>
-            <span class="price-number">24</span>
-            <span class="price-suffix">.99</span>
-          </div>
-          <ul class="price-features">
-            <li><span class="price-check">✦</span> High-resolution 300 DPI file</li>
-            <li><span class="price-check">✦</span> Phone wallpaper version</li>
-            <li><span class="price-check">✦</span> Desktop wallpaper version</li>
-            <li><span class="price-check">✦</span> Social media versions</li>
-            <li><span class="price-check">✦</span> Delivered in 24 hours</li>
-          </ul>
-          <button class="btn-outline price-cta" onclick="openModal('digital')">Get Digital →</button>
-        </div>
-
-        <!-- Poster — Featured -->
-        <div class="price-card featured">
-          <div class="featured-badge">⭐ Most Popular</div>
-          <div class="price-icon">🖼️</div>
-          <div class="price-name">Framed Poster</div>
-          <div class="price-tagline">Ready to hang, ready to wow</div>
-          <div class="price-amount">
-            <span class="price-currency">$</span>
-            <span class="price-number">79</span>
-            <span class="price-suffix">.99</span>
-          </div>
-          <ul class="price-features">
-            <li><span class="price-check">✦</span> Premium gallery-quality print</li>
-            <li><span class="price-check">✦</span> Solid wood frame included</li>
-            <li><span class="price-check">✦</span> All digital files included</li>
-            <li><span class="price-check">✦</span> Gift-ready packaging</li>
-            <li><span class="price-check">✦</span> Free tracked shipping</li>
-          </ul>
-          <button class="btn-gold price-cta" onclick="openModal('framed')">Order Framed →</button>
-        </div>
-
-        <!-- Canvas -->
-        <div class="price-card">
-          <div class="price-icon">🎨</div>
-          <div class="price-name">Canvas Print</div>
-          <div class="price-tagline">Museum-quality stretched canvas</div>
-          <div class="price-amount">
-            <span class="price-currency">$</span>
-            <span class="price-number">99</span>
-            <span class="price-suffix">–149</span>
-          </div>
-          <ul class="price-features">
-            <li><span class="price-check">✦</span> Gallery-wrap canvas</li>
-            <li><span class="price-check">✦</span> 3 sizes: 12×16, 16×20, 20×24</li>
-            <li><span class="price-check">✦</span> UV-resistant inks</li>
-            <li><span class="price-check">✦</span> All digital files included</li>
-            <li><span class="price-check">✦</span> Free tracked shipping</li>
-          </ul>
-          <button class="btn-outline price-cta" onclick="openModal('canvas')">Order Canvas →</button>
-        </div>
-      </div>
-
-      <!-- Physical-only extras row -->
-      <div class="bundle-row" style="margin-bottom: 20px;">
-        <div class="bundle-card">
-          <div class="bundle-icon">🖨️</div>
-          <div>
-            <div class="bundle-name">Poster Print (Unframed)</div>
-            <div class="bundle-desc">Professional print on premium photo paper — you frame it your way.</div>
-            <div class="bundle-price">$49.99</div>
-          </div>
-          <button class="btn-outline" style="margin-left:auto; padding:10px 20px; border-radius:50px; white-space:nowrap;" onclick="openModal('poster')">Order →</button>
-        </div>
-        <div class="bundle-card">
-          <div class="bundle-icon">🎁</div>
-          <div>
-            <div class="bundle-name">Gift Bundle</div>
-            <div class="bundle-desc">Framed poster + matching mug + personalized gift card.</div>
-            <div class="bundle-price">$129–199</div>
-          </div>
-          <button class="btn-gold" style="margin-left:auto; padding:10px 20px; border-radius:50px; white-space:nowrap;" onclick="openModal('bundle')">Order →</button>
-        </div>
-      </div>
-
-      <!-- Other physical products -->
-      <div class="bundle-row">
-        <div class="bundle-card">
-          <div class="bundle-icon">☕</div>
-          <div>
-            <div class="bundle-name">Custom Mug</div>
-            <div class="bundle-desc">Start every morning with your movie poster on a premium 11oz mug.</div>
-            <div class="bundle-price">$34.99</div>
-          </div>
-          <button class="btn-outline" style="margin-left:auto; padding:10px 20px; border-radius:50px; white-space:nowrap;" onclick="openModal('mug')">Order →</button>
-        </div>
-        <div class="bundle-card">
-          <div class="bundle-icon">🧩</div>
-          <div>
-            <div class="bundle-name">Custom Puzzle</div>
-            <div class="bundle-desc">500 or 1000 piece puzzle of your personalized movie poster.</div>
-            <div class="bundle-price">$44.99</div>
-          </div>
-          <button class="btn-outline" style="margin-left:auto; padding:10px 20px; border-radius:50px; white-space:nowrap;" onclick="openModal('puzzle')">Order →</button>
-        </div>
-      </div>
-
-      <!-- Upsells -->
-      <div class="upsell-section">
-        <div class="upsell-title">Add-On <span class="gold-text">Upgrades</span></div>
-        <div class="upsells-grid">
-          <div class="upsell-card">
-            <div class="upsell-emoji">🎨</div>
-            <div class="upsell-name">Extra Style</div>
-            <div class="upsell-price">+$10</div>
-          </div>
-          <div class="upsell-card">
-            <div class="upsell-emoji">⚡</div>
-            <div class="upsell-name">Rush Delivery</div>
-            <div class="upsell-price">+$15</div>
-          </div>
-          <div class="upsell-card">
-            <div class="upsell-emoji">🎬</div>
-            <div class="upsell-name">Animated Version</div>
-            <div class="upsell-price">+$20</div>
-          </div>
-          <div class="upsell-card">
-            <div class="upsell-emoji">📱</div>
-            <div class="upsell-name">Phone Wallpaper</div>
-            <div class="upsell-price">+$5</div>
-          </div>
-          <div class="upsell-card">
-            <div class="upsell-emoji">🎁</div>
-            <div class="upsell-name">Video Reveal</div>
-            <div class="upsell-price">+$15</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══════════════════════════════ REVIEWS ══════════════════════════════ -->
-  <section id="reviews">
-    <div class="container">
-      <div class="reviews-header">
-        <span class="section-label">Social Proof</span>
-        <h2 class="section-title">People <span class="gold-text">Literally Post</span> These</h2>
-        <p class="section-sub" style="margin: 0 auto;">Every poster becomes a conversation starter.</p>
-      </div>
-      <div class="reviews-grid">
-        <div class="review-card">
-          <div class="review-stars">★★★★★</div>
-          <p class="review-text">"I got this for my husband for our anniversary and he literally cried. <strong>He put it above our fireplace the same day.</strong> Everyone who comes over asks about it."</p>
-          <div class="review-author">
-            <div class="review-avatar">😊</div>
-            <div>
-              <div class="review-name">Sarah M.</div>
-              <div class="review-meta">Hollywood Movie Poster · Framed</div>
-            </div>
-          </div>
-        </div>
-        <div class="review-card">
-          <div class="review-stars">★★★★★</div>
-          <p class="review-text">"Ordered this as a joke for my dog. <strong>My TikTok blew up — 2.1 million views.</strong> I've already ordered 4 more for family members. This is insane."</p>
-          <div class="review-author">
-            <div class="review-avatar">🐕</div>
-            <div>
-              <div class="review-name">Jake T.</div>
-              <div class="review-meta">Superhero Poster · Digital + Canvas</div>
-            </div>
-          </div>
-        </div>
-        <div class="review-card">
-          <div class="review-stars">★★★★★</div>
-          <p class="review-text">"My sister got me a Pixar-style poster of me and my kids. I showed it at work and <strong>6 coworkers immediately ordered one.</strong> Quality is unreal."</p>
-          <div class="review-author">
-            <div class="review-avatar">👨‍👩‍👧</div>
-            <div>
-              <div class="review-name">Maria R.</div>
-              <div class="review-meta">Pixar Style · Framed Poster</div>
-            </div>
-          </div>
-        </div>
-        <div class="review-card">
-          <div class="review-stars">★★★★★</div>
-          <p class="review-text">"Got the Horror movie one for Halloween. <strong>My friend group is obsessed.</strong> We did a whole photoshoot around it. Ordering the anime version next."</p>
-          <div class="review-author">
-            <div class="review-avatar">🎃</div>
-            <div>
-              <div class="review-name">Alex K.</div>
-              <div class="review-meta">Horror Movie Poster · Canvas</div>
-            </div>
-          </div>
-        </div>
-        <div class="review-card">
-          <div class="review-stars">★★★★★</div>
-          <p class="review-text">"Best Christmas gift I've ever given. My parents have been married 40 years — the Hollywood poster with their wedding date and names made my mom cry happy tears. <strong>Worth every penny.</strong>"</p>
-          <div class="review-author">
-            <div class="review-avatar">💑</div>
-            <div>
-              <div class="review-name">Chris D.</div>
-              <div class="review-meta">Hollywood Poster · Framed</div>
-            </div>
-          </div>
-        </div>
-        <div class="review-card">
-          <div class="review-stars">★★★★★</div>
-          <p class="review-text">"Ordered 12 for my whole friend group for a birthday. <strong>Everyone posted theirs on Instagram the same night.</strong> We trended in our city. Absolutely legendary gift."</p>
-          <div class="review-author">
-            <div class="review-avatar">🎉</div>
-            <div>
-              <div class="review-name">Taylor B.</div>
-              <div class="review-meta">Anime Poster · Bundle Pack</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══════════════════════════════ FAQ ══════════════════════════════ -->
-  <section id="faq">
-    <div class="container">
-      <div class="faq-inner">
-        <div class="faq-header">
-          <span class="section-label">FAQ</span>
-          <h2 class="section-title">Got <span class="gold-text">Questions?</span></h2>
-        </div>
-        <div class="faq-list">
-          <div class="faq-item">
-            <button class="faq-q" onclick="toggleFaq(this)">
-              How long does it take to receive my poster?
-              <span class="faq-arrow">+</span>
-            </button>
-            <div class="faq-a"><div class="faq-a-inner">Digital downloads are delivered to your email within 24 hours. Physical prints typically ship within 3–5 business days and arrive in 5–10 business days depending on your location. Need it faster? Add Rush Delivery at checkout for priority processing within 12 hours.</div></div>
-          </div>
-          <div class="faq-item">
-            <button class="faq-q" onclick="toggleFaq(this)">
-              What kind of photo should I upload?
-              <span class="faq-arrow">+</span>
-            </button>
-            <div class="faq-a"><div class="faq-a-inner">Any clear photo works! For best results, use a well-lit photo where faces are clearly visible. High resolution (at least 1MB) is preferred. Group photos, selfies, pet photos, couple shots — all work great. The AI can work with 1–6 people in a single poster.</div></div>
-          </div>
-          <div class="faq-item">
-            <button class="faq-q" onclick="toggleFaq(this)">
-              Can I request changes if I don't like it?
-              <span class="faq-arrow">+</span>
-            </button>
-            <div class="faq-a"><div class="faq-a-inner">Absolutely. Every order includes unlimited revisions until you're 100% happy. If you want to adjust the style, text, colors, or composition, just email us and we'll revise it for free. We also offer a full refund if you're not satisfied after revisions.</div></div>
-          </div>
-          <div class="faq-item">
-            <button class="faq-q" onclick="toggleFaq(this)">
-              What file formats do I receive for digital orders?
-              <span class="faq-arrow">+</span>
-            </button>
-            <div class="faq-a"><div class="faq-a-inner">You receive a high-resolution 300 DPI JPG/PNG file (print-ready), a phone wallpaper version (1080×1920), a desktop wallpaper version (2560×1440), and Instagram/Facebook ready versions. All files are delivered via email download link.</div></div>
-          </div>
-          <div class="faq-item">
-            <button class="faq-q" onclick="toggleFaq(this)">
-              Is my photo and personal data kept private?
-              <span class="faq-arrow">+</span>
-            </button>
-            <div class="faq-a"><div class="faq-a-inner">Yes — your photos and personal details are used solely to create your poster and are never sold or shared with third parties. We delete uploaded photos from our servers after 30 days. Your data is encrypted and handled in compliance with GDPR and CCPA.</div></div>
-          </div>
-          <div class="faq-item">
-            <button class="faq-q" onclick="toggleFaq(this)">
-              Do you ship internationally?
-              <span class="faq-arrow">+</span>
-            </button>
-            <div class="faq-a"><div class="faq-a-inner">Yes! We ship to over 50 countries worldwide. Domestic US orders get free tracked shipping on all physical products. International orders have a flat shipping fee that varies by region, shown at checkout. Typical international delivery is 10–20 business days.</div></div>
-          </div>
-          <div class="faq-item">
-            <button class="faq-q" onclick="toggleFaq(this)">
-              Can I use this as a gift and ship directly to someone else?
-              <span class="faq-arrow">+</span>
-            </button>
-            <div class="faq-a"><div class="faq-a-inner">Absolutely — just enter the recipient's address at checkout. You can also add a personalized gift message and we'll include it in the package. For digital gifts, we can send the download link directly to the recipient's email as a surprise.</div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══════════════════════════════ CTA BANNER ══════════════════════════════ -->
-  <section id="cta-banner">
-    <div class="cta-banner-inner">
-      <h2 class="cta-banner-title">
-        Ready to Create <span class="gold-text">Something</span><br/>
-        They'll Never Forget?
-      </h2>
-      <p class="cta-banner-sub">Join thousands of people who turned their favorite photo into a cinematic masterpiece.</p>
-      <button class="btn-gold" style="font-size:18px; padding:18px 48px;" onclick="openModal()">
-        Create My Poster — Starting at $24.99 →
-      </button>
-    </div>
-  </section>
-
-  <!-- ══════════════════════════════ FOOTER ══════════════════════════════ -->
-  <footer>
-    <div class="footer-inner">
-      <div class="footer-top">
-        <div>
-          <div class="footer-brand-logo">Poster<span>AI</span></div>
-          <p class="footer-brand-desc">We turn your favorite memories into Hollywood-quality personalized movie posters using the latest AI technology. The gift that always goes viral.</p>
-        </div>
-        <div>
-          <div class="footer-col-title">Products</div>
-          <ul class="footer-links">
-            <li><a href="#pricing">Digital Download</a></li>
-            <li><a href="#pricing">Poster Print</a></li>
-            <li><a href="#pricing">Framed Poster</a></li>
-            <li><a href="#pricing">Canvas Print</a></li>
-            <li><a href="#pricing">Gift Bundles</a></li>
-          </ul>
-        </div>
-        <div>
-          <div class="footer-col-title">Styles</div>
-          <ul class="footer-links">
-            <li><a href="#styles">Hollywood Poster</a></li>
-            <li><a href="#styles">Pixar Style</a></li>
-            <li><a href="#styles">Anime Poster</a></li>
-            <li><a href="#styles">Vintage Travel</a></li>
-            <li><a href="#styles">Horror & Superhero</a></li>
-          </ul>
-        </div>
-        <div>
-          <div class="footer-col-title">Company</div>
-          <ul class="footer-links">
-            <li><a href="#">About Us</a></li>
-            <li><a href="#">How It Works</a></li>
-            <li><a href="#faq">FAQ</a></li>
-            <li><a href="#">Contact Us</a></li>
-            <li><a href="#">Affiliate Program</a></li>
-          </ul>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        <div class="footer-copy">© 2025 PosterAI. All rights reserved.</div>
-        <div class="footer-legal">
-          <a href="#">Privacy Policy</a>
-          <a href="#">Terms of Service</a>
-          <a href="#">Refund Policy</a>
-        </div>
-      </div>
-    </div>
-  </footer>
-
-  <!-- ══════════════════════════════ ORDER MODAL ══════════════════════════════ -->
-  <div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
-    <div class="modal" id="modal">
-      <div class="modal-header">
-        <div class="modal-title" id="modal-title">Create Your Poster</div>
-        <button class="modal-close" onclick="closeModal()" aria-label="Close">×</button>
-      </div>
-      <div class="modal-body">
-        <!-- Step indicators -->
-        <div class="order-steps">
-          <div class="order-step-pill active" id="pill-1">1 · Product</div>
-          <div class="order-step-pill" id="pill-2">2 · Style</div>
-          <div class="order-step-pill" id="pill-3">3 · Details</div>
-          <div class="order-step-pill" id="pill-4">4 · Checkout</div>
-        </div>
-
-        <!-- STEP 1: Product -->
-        <div class="step-panel active" id="panel-1">
-          <p style="font-size:14px; color:var(--muted); margin-bottom:20px;">What format would you like your poster in?</p>
-          <div class="product-picker" id="product-picker">
-            <div class="product-option" onclick="selectProduct(this, 'digital', 24.99)">
-              <div class="product-option-icon">💻</div>
-              <div class="product-option-name">Digital Download</div>
-              <div class="product-option-price">$24.99</div>
-              <div class="product-option-desc">HD files delivered to your email</div>
-            </div>
-            <div class="product-option" onclick="selectProduct(this, 'poster', 49.99)">
-              <div class="product-option-icon">🖨️</div>
-              <div class="product-option-name">Poster Print</div>
-              <div class="product-option-price">$49.99</div>
-              <div class="product-option-desc">Professional print, you frame it</div>
-            </div>
-            <div class="product-option" onclick="selectProduct(this, 'framed', 79.99)">
-              <div class="product-option-icon">🖼️</div>
-              <div class="product-option-name">Framed Poster</div>
-              <div class="product-option-price">$79.99</div>
-              <div class="product-option-desc">Ready to hang, gift packaging</div>
-            </div>
-            <div class="product-option" onclick="selectProduct(this, 'canvas', 99)">
-              <div class="product-option-icon">🎨</div>
-              <div class="product-option-name">Canvas Print</div>
-              <div class="product-option-price">From $99</div>
-              <div class="product-option-desc">Gallery-wrap museum quality</div>
-            </div>
-            <div class="product-option" onclick="selectProduct(this, 'mug', 34.99)">
-              <div class="product-option-icon">☕</div>
-              <div class="product-option-name">Custom Mug</div>
-              <div class="product-option-price">$34.99</div>
-              <div class="product-option-desc">11oz premium ceramic mug</div>
-            </div>
-            <div class="product-option" onclick="selectProduct(this, 'bundle', 129)">
-              <div class="product-option-icon">🎁</div>
-              <div class="product-option-name">Gift Bundle</div>
-              <div class="product-option-price">From $129</div>
-              <div class="product-option-desc">Poster + mug + gift card</div>
-            </div>
-          </div>
-          <div class="modal-nav">
-            <button class="btn-gold btn-next" onclick="goToStep(2)" id="step1-next" disabled style="opacity:0.4;">
-              Continue to Style →
-            </button>
-          </div>
-        </div>
-
-        <!-- STEP 2: Style -->
-        <div class="step-panel" id="panel-2">
-          <p style="font-size:14px; color:var(--muted); margin-bottom:20px;">Choose your cinematic style:</p>
-          <div class="style-picker" id="style-picker">
-            <div class="style-option" onclick="selectStyle(this, 'hollywood')">
-              <div class="style-option-emoji">🎬</div>
-              <div class="style-option-name">Hollywood</div>
-            </div>
-            <div class="style-option" onclick="selectStyle(this, 'pixar')">
-              <div class="style-option-emoji">✨</div>
-              <div class="style-option-name">Pixar</div>
-            </div>
-            <div class="style-option" onclick="selectStyle(this, 'anime')">
-              <div class="style-option-emoji">⚔️</div>
-              <div class="style-option-name">Anime</div>
-            </div>
-            <div class="style-option" onclick="selectStyle(this, 'vintage')">
-              <div class="style-option-emoji">🗺️</div>
-              <div class="style-option-name">Vintage</div>
-            </div>
-            <div class="style-option" onclick="selectStyle(this, 'horror')">
-              <div class="style-option-emoji">🎃</div>
-              <div class="style-option-name">Horror</div>
-            </div>
-            <div class="style-option" onclick="selectStyle(this, 'superhero')">
-              <div class="style-option-emoji">🦸</div>
-              <div class="style-option-name">Superhero</div>
-            </div>
-            <div class="style-option" onclick="selectStyle(this, 'fantasy')">
-              <div class="style-option-emoji">🐉</div>
-              <div class="style-option-name">Fantasy</div>
-            </div>
-          </div>
-          <div style="margin-top:20px;">
-            <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">Upload your photo:</p>
-            <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
-              <div class="upload-icon">📸</div>
-              <div class="upload-text" id="upload-text">Click to upload your photo</div>
-              <div class="upload-sub">JPG, PNG or HEIC · Max 20MB</div>
-            </div>
-            <input type="file" id="file-input" accept="image/*" onchange="handleFileUpload(event)" />
-          </div>
-          <div class="modal-nav">
-            <button class="btn-back" onclick="goToStep(1)">← Back</button>
-            <button class="btn-gold btn-next" onclick="goToStep(3)" id="step2-next" disabled style="opacity:0.4;">
-              Continue to Details →
-            </button>
-          </div>
-        </div>
-
-        <!-- STEP 3: Details + Upsells -->
-        <div class="step-panel" id="panel-3">
-          <p style="font-size:14px; color:var(--muted); margin-bottom:20px;">Tell us the details for your poster:</p>
-          <div class="field-row">
-            <div class="field-group">
-              <label class="field-label">Name(s) on Poster</label>
-              <input class="field-input" type="text" id="field-names" placeholder="e.g. Sarah & Mike" oninput="checkStep3()" />
-            </div>
-            <div class="field-group">
-              <label class="field-label">Special Date</label>
-              <input class="field-input" type="text" id="field-date" placeholder="e.g. June 14, 2019" oninput="checkStep3()" />
-            </div>
-          </div>
-          <div class="field-group">
-            <label class="field-label">Tagline / Quote (optional)</label>
-            <input class="field-input" type="text" id="field-quote" placeholder="e.g. Their greatest adventure yet..." />
-          </div>
-          <div class="field-group">
-            <label class="field-label">Special Instructions (optional)</label>
-            <textarea class="field-input" rows="2" id="field-notes" placeholder="Any specific requests, colors, details..."></textarea>
-          </div>
-
-          <p style="font-size:13px; font-weight:600; margin: 24px 0 14px; text-transform:uppercase; letter-spacing:1px; color:var(--muted);">Add-on Upgrades</p>
-          <div class="upsell-toggles">
-            <div class="upsell-toggle" onclick="toggleUpsell(this, 'extra-style', 10)">
-              <div class="upsell-toggle-left">
-                <div class="upsell-toggle-emoji">🎨</div>
-                <div>
-                  <div class="upsell-toggle-name">Extra Style Version</div>
-                  <div class="upsell-toggle-desc">Get the same poster in a 2nd style of your choice</div>
-                </div>
-              </div>
-              <div class="upsell-toggle-right">
-                <div class="upsell-toggle-price">+$10</div>
-                <div class="toggle-checkbox"><span class="toggle-check">✓</span></div>
-              </div>
-            </div>
-            <div class="upsell-toggle" onclick="toggleUpsell(this, 'rush', 15)">
-              <div class="upsell-toggle-left">
-                <div class="upsell-toggle-emoji">⚡</div>
-                <div>
-                  <div class="upsell-toggle-name">Rush Delivery</div>
-                  <div class="upsell-toggle-desc">Priority processing — ready in 12 hours</div>
-                </div>
-              </div>
-              <div class="upsell-toggle-right">
-                <div class="upsell-toggle-price">+$15</div>
-                <div class="toggle-checkbox"><span class="toggle-check">✓</span></div>
-              </div>
-            </div>
-            <div class="upsell-toggle" onclick="toggleUpsell(this, 'animated', 20)">
-              <div class="upsell-toggle-left">
-                <div class="upsell-toggle-emoji">🎬</div>
-                <div>
-                  <div class="upsell-toggle-name">Animated Version</div>
-                  <div class="upsell-toggle-desc">Receive a looping animated MP4 / GIF</div>
-                </div>
-              </div>
-              <div class="upsell-toggle-right">
-                <div class="upsell-toggle-price">+$20</div>
-                <div class="toggle-checkbox"><span class="toggle-check">✓</span></div>
-              </div>
-            </div>
-            <div class="upsell-toggle" onclick="toggleUpsell(this, 'wallpaper', 5)">
-              <div class="upsell-toggle-left">
-                <div class="upsell-toggle-emoji">📱</div>
-                <div>
-                  <div class="upsell-toggle-name">Phone Wallpaper</div>
-                  <div class="upsell-toggle-desc">Matching wallpaper sized for your phone screen</div>
-                </div>
-              </div>
-              <div class="upsell-toggle-right">
-                <div class="upsell-toggle-price">+$5</div>
-                <div class="toggle-checkbox"><span class="toggle-check">✓</span></div>
-              </div>
-            </div>
-            <div class="upsell-toggle" onclick="toggleUpsell(this, 'reveal', 15)">
-              <div class="upsell-toggle-left">
-                <div class="upsell-toggle-emoji">🎁</div>
-                <div>
-                  <div class="upsell-toggle-name">Video Reveal</div>
-                  <div class="upsell-toggle-desc">Cinematic reveal video to share the gift</div>
-                </div>
-              </div>
-              <div class="upsell-toggle-right">
-                <div class="upsell-toggle-price">+$15</div>
-                <div class="toggle-checkbox"><span class="toggle-check">✓</span></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="modal-nav">
-            <button class="btn-back" onclick="goToStep(2)">← Back</button>
-            <button class="btn-gold btn-next" onclick="goToStep(4)" id="step3-next" disabled style="opacity:0.4;">
-              Continue to Checkout →
-            </button>
-          </div>
-        </div>
-
-        <!-- STEP 4: Checkout -->
-        <div class="step-panel" id="panel-4">
-          <!-- Order summary -->
-          <div class="order-summary" id="order-summary">
-            <!-- Populated by JS -->
-          </div>
-
-          <p style="font-size:14px; color:var(--muted); margin-bottom:20px; font-weight:600;">Payment Details</p>
-
-          <!-- Stripe Card Element will mount here -->
-          <div id="stripe-card-element" style="background:var(--bg3); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:18px 16px; margin-bottom:16px;">
-            <!-- Stripe injects here -->
-          </div>
-          <div id="stripe-element-placeholder" style="display:none;">
-            <div style="font-size:13px; color:var(--muted);">🔒 Secure payment powered by Stripe</div>
-            <div style="font-size:12px; color:var(--muted); margin-top:6px;">Card number · Expiry · CVC</div>
-            <div style="font-size:11px; color:rgba(255,255,255,0.3); margin-top:6px;">⚠️ Add your Stripe Publishable Key to enable live payments</div>
-          </div>
-
-          <div id="card-errors" style="color:#e74c3c; font-size:13px; margin-bottom:12px;"></div>
-
-          <div class="stripe-badge">
-            🔒 Secured by Stripe · SSL encrypted · Never stored on our servers
-          </div>
-
-          <div class="field-group" style="margin-top:20px;">
-            <label class="field-label">Email (for delivery)</label>
-            <input class="field-input" type="email" id="field-email" placeholder="your@email.com" />
-          </div>
-
-          <div class="modal-nav">
-            <button class="btn-back" onclick="goToStep(3)">← Back</button>
-            <button class="btn-gold btn-next" id="pay-btn" onclick="handlePaymentInit()">
-              Pay &amp; Create My Poster →
-            </button>
-          </div>
-
-          <p style="font-size:12px; color:var(--muted); text-align:center; margin-top:16px;">
-            By placing your order you agree to our <a href="#" style="color:var(--gold);">Terms of Service</a> and <a href="#" style="color:var(--gold);">Refund Policy</a>. Unlimited revisions guaranteed.
-          </p>
-        </div>
-
+      <div class="step-card">
+        <div class="step-num">04</div>
+        <div class="step-icon">📧</div>
+        <div class="step-title">Delivered to Your Inbox</div>
+        <div class="step-desc">Your poster arrives by email within minutes — ready to download, print, or share anywhere.</div>
       </div>
     </div>
   </div>
+</section>
 
-  <!-- ══════════════════════════════ JAVASCRIPT ══════════════════════════════ -->
-  <script>
-    // ─── CONFIG ─────────────────────────────────────────────────────────────────
-    // Step 1: Replace with your Stripe Publishable Key (starts with pk_test_ or pk_live_)
-    // Get it from: stripe.com → Developers → API Keys
-    const STRIPE_PUBLISHABLE_KEY = 'pk_live_51Tvk5OKzgEErAr98SVV8y3CBapLsMlXSQ5VbyC5ubFHKjpzI4wZtb0U9K7HlZX5RInHnDFeVxpApmCqqaSEY88Cm003egYfYgw';
-    // ────────────────────────────────────────────────────────────────────────────
+<!-- STYLES -->
+<section id="styles">
+  <div class="container">
+    <div class="styles-header">
+      <div>
+        <span class="section-label">7 Cinematic Styles</span>
+        <h2 class="section-title">Pick Your <span class="gold">Universe</span></h2>
+      </div>
+      <button class="btn-gold" onclick="openModal()">Create Yours →</button>
+    </div>
+    <div class="styles-grid">
+      <div class="style-card" onclick="openModal()">
+        <div class="style-fill s1">
+          <div class="style-emoji">🎬</div>
+          <div class="style-badge">Most Popular</div>
+          <div class="style-overlay"></div>
+          <div class="style-info"><div class="style-name">Hollywood Blockbuster</div><div class="style-desc">Epic cinematic lighting & heroic composition</div></div>
+        </div>
+      </div>
+      <div class="style-card" onclick="openModal()">
+        <div class="style-fill s2">
+          <div class="style-emoji">✨</div>
+          <div class="style-overlay"></div>
+          <div class="style-info"><div class="style-name">Pixar Animation</div><div class="style-desc">Vibrant 3D CGI character style</div></div>
+        </div>
+      </div>
+      <div class="style-card" onclick="openModal()">
+        <div class="style-fill s3">
+          <div class="style-emoji">⛩️</div>
+          <div class="style-overlay"></div>
+          <div class="style-info"><div class="style-name">Anime / Manga</div><div class="style-desc">Studio Ghibli & Makoto Shinkai inspired</div></div>
+        </div>
+      </div>
+      <div class="style-card" onclick="openModal()">
+        <div class="style-fill s4">
+          <div class="style-emoji">👁️</div>
+          <div class="style-overlay"></div>
+          <div class="style-info"><div class="style-name">Horror / Thriller</div><div class="style-desc">Dark atmosphere, eerie lighting</div></div>
+        </div>
+      </div>
+      <div class="style-card" onclick="openModal()">
+        <div class="style-fill s5">
+          <div class="style-emoji">📽️</div>
+          <div class="style-overlay"></div>
+          <div class="style-info"><div class="style-name">Vintage Retro</div><div class="style-desc">Classic 1970s hand-painted poster style</div></div>
+        </div>
+      </div>
+      <div class="style-card" onclick="openModal()">
+        <div class="style-fill s6">
+          <div class="style-emoji">🚀</div>
+          <div class="style-overlay"></div>
+          <div class="style-info"><div class="style-name">Sci-Fi Epic</div><div class="style-desc">Futuristic armors, space & alien worlds</div></div>
+        </div>
+      </div>
+      <div class="style-card" onclick="openModal()">
+        <div class="style-fill s7">
+          <div class="style-emoji">💫</div>
+          <div class="style-overlay"></div>
+          <div class="style-info"><div class="style-name">Romance Drama</div><div class="style-desc">Warm golden-hour cinematic beauty</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
-    // State
-    let currentStep = 1;
-    let order = {
-      product: null,
-      productName: '',
-      basePrice: 0,
-      style: null,
-      fileUploaded: false,
-      names: '',
-      date: '',
-      quote: '',
-      notes: '',
-      upsells: {},
-      upsellTotal: 0,
+<!-- PRICING -->
+<section id="pricing">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:8px;"><span class="section-label">Simple Pricing</span></div>
+    <h2 class="section-title" style="text-align:center;">Choose Your <span class="gold">Package</span></h2>
+    <p style="text-align:center;color:var(--muted);margin-top:12px;font-size:15px;">100% digital. AI-generated. Delivered in minutes.</p>
+
+    <div class="pricing-grid">
+      <!-- Digital -->
+      <div class="price-card">
+        <div class="price-icon">🎬</div>
+        <div class="price-name">Digital Poster</div>
+        <div class="price-tagline">AI-generated, ready in minutes</div>
+        <div class="price-amount"><sup>$</sup>24.99</div>
+        <ul class="price-features">
+          <li><span class="price-check">✦</span> 1 AI-generated poster in your chosen style</li>
+          <li><span class="price-check">✦</span> High-resolution file delivered by email</li>
+          <li><span class="price-check">✦</span> Delivered within minutes of payment</li>
+          <li><span class="price-check">✦</span> Free revisions until you love it</li>
+          <li><span class="price-check">✦</span> Print-ready quality</li>
+        </ul>
+        <button class="btn-outline price-cta" onclick="openModal('digital')">Get Digital Poster →</button>
+      </div>
+
+      <!-- Premium -->
+      <div class="price-card featured">
+        <div class="featured-badge">⭐ Best Value</div>
+        <div class="price-icon">🏆</div>
+        <div class="price-name">Premium Pack</div>
+        <div class="price-tagline">3 styles — maximum impact</div>
+        <div class="price-amount"><sup>$</sup>49.99</div>
+        <ul class="price-features">
+          <li><span class="price-check">✦</span> 3 AI-generated posters in 3 different styles</li>
+          <li><span class="price-check">✦</span> High-resolution files for all 3 delivered by email</li>
+          <li><span class="price-check">✦</span> Delivered within minutes of payment</li>
+          <li><span class="price-check">✦</span> Free revisions until you love it</li>
+          <li><span class="price-check">✦</span> Print-ready quality</li>
+        </ul>
+        <button class="btn-gold price-cta" onclick="openModal('premium')">Get Premium Pack →</button>
+      </div>
+    </div>
+
+    <!-- Upsells info -->
+    <div class="upsell-section">
+      <div class="upsell-title">Optional <span style="color:var(--gold)">Add-Ons</span></div>
+      <div class="upsells-grid">
+        <div class="upsell-card">
+          <div class="upsell-icon">🎨</div>
+          <div><div class="upsell-name">Extra Style</div><div class="upsell-desc">Add one more style variation to your order</div></div>
+          <div class="upsell-price">+$10</div>
+        </div>
+        <div class="upsell-card">
+          <div class="upsell-icon">⚡</div>
+          <div><div class="upsell-name">Rush Order</div><div class="upsell-desc">Jump to the front of the generation queue</div></div>
+          <div class="upsell-price">+$15</div>
+        </div>
+        <div class="upsell-card">
+          <div class="upsell-icon">📱</div>
+          <div><div class="upsell-name">Wallpaper Pack</div><div class="upsell-desc">Phone + desktop wallpaper sizes included</div></div>
+          <div class="upsell-price">+$5</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REVIEWS -->
+<section id="reviews">
+  <div class="container">
+    <span class="section-label">Customer Love</span>
+    <h2 class="section-title">People <span class="gold">Obsessed</span></h2>
+    <div class="reviews-grid">
+      <div class="review-card">
+        <div class="review-stars">★★★★★</div>
+        <p class="review-text">"I ordered this for my boyfriend's birthday and it came back looking like a real Marvel movie poster. He framed it immediately. Worth every penny."</p>
+        <div class="review-author">Jessica M. — Hollywood Blockbuster style</div>
+      </div>
+      <div class="review-card">
+        <div class="review-stars">★★★★★</div>
+        <p class="review-text">"The anime style one of my kids came out incredible. It literally looks like it belongs in a Studio Ghibli film. Already ordering the premium pack for the whole family."</p>
+        <div class="review-author">Marcus T. — Anime / Manga style</div>
+      </div>
+      <div class="review-card">
+        <div class="review-stars">★★★★★</div>
+        <p class="review-text">"Got mine back in like 5 minutes. Used the vintage retro style for our anniversary and now it's the most-commented thing in our home. Absolutely stunning quality."</p>
+        <div class="review-author">Sarah K. — Vintage Retro style</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="container">
+    <span class="section-label">Questions</span>
+    <h2 class="section-title">Got <span class="gold">Questions?</span></h2>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)"><span>How fast will I get my poster?</span><span class="faq-icon">+</span></button>
+        <div class="faq-a">Most posters are generated and delivered to your email within 2–5 minutes of payment. Premium packs with 3 styles may take 5–10 minutes.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)"><span>What kind of photo should I upload?</span><span class="faq-icon">+</span></button>
+        <div class="faq-a">Any clear photo works best — ideally one where the face is visible and well-lit. Portrait shots work great, but group photos are supported too. JPG, PNG, or HEIC up to 20MB.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)"><span>Can I get revisions?</span><span class="faq-icon">+</span></button>
+        <div class="faq-a">Yes — unlimited free revisions. Just reply to the delivery email with your feedback and we'll regenerate until you love it.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)"><span>What do I get exactly?</span><span class="faq-icon">+</span></button>
+        <div class="faq-a">You'll receive a high-resolution JPG file delivered to your email, ready to download and print anywhere — Walgreens, Amazon Photos, Canvaspop, or any local print shop.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)"><span>Is my photo kept private?</span><span class="faq-icon">+</span></button>
+        <div class="faq-a">Your photo is only used for AI generation and is never stored on our servers after your poster is created. We take your privacy seriously.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="cta-banner">
+  <h2 class="cta-banner-title">Ready for Your <span style="color:var(--gold)">Movie Poster?</span></h2>
+  <p class="cta-banner-sub">Upload your photo now — your AI-generated poster arrives in minutes.</p>
+  <button class="btn-gold" style="font-size:18px;padding:18px 48px;" onclick="openModal()">Create My Poster — Starting at $24.99 →</button>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo">Poster<span>AI</span></div>
+    <div class="footer-copy">© 2025 PosterAI. All rights reserved.</div>
+  </div>
+</footer>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal-box" id="modal-box">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Create Your Poster</div>
+      <div class="modal-sub" id="modal-sub">AI-generated and delivered in minutes</div>
+      <div class="steps-progress" style="margin-top:16px;" id="steps-progress">
+        <div class="step-dot active" id="dot-1"></div>
+        <div class="step-dot" id="dot-2"></div>
+        <div class="step-dot" id="dot-3"></div>
+        <div class="step-dot" id="dot-4"></div>
+      </div>
+    </div>
+    <div class="modal-body">
+
+      <!-- STEP 1: Product -->
+      <div class="step-panel active" id="panel-1">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Choose your package:</p>
+        <div class="product-options">
+          <div class="product-option" onclick="selectProduct(this,'digital',24.99)">
+            <div class="product-option-icon">🎬</div>
+            <div class="product-option-info">
+              <div class="product-option-name">Digital Poster</div>
+              <div class="product-option-desc">1 AI-generated poster in your chosen style</div>
+            </div>
+            <div class="product-option-price">$24.99</div>
+          </div>
+          <div class="product-option" onclick="selectProduct(this,'premium',49.99)">
+            <div class="product-option-icon">🏆</div>
+            <div class="product-option-info">
+              <div class="product-option-name">Premium Pack <span style="background:var(--gold);color:#000;font-size:10px;padding:2px 7px;border-radius:50px;font-weight:700;margin-left:6px;">BEST VALUE</span></div>
+              <div class="product-option-desc">3 posters in 3 different styles</div>
+            </div>
+            <div class="product-option-price">$49.99</div>
+          </div>
+        </div>
+        <div class="modal-nav">
+          <button class="btn-gold btn-next" onclick="goToStep(2)" id="step1-next" disabled>Continue →</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Photo + Style -->
+      <div class="step-panel" id="panel-2">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Upload your photo:</p>
+        <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+          <div class="upload-icon">📸</div>
+          <div class="upload-text" id="upload-text">Click to upload your photo</div>
+          <div class="upload-sub">JPG, PNG or HEIC · Max 20MB</div>
+        </div>
+        <input type="file" id="file-input" accept="image/*" onchange="handleFileUpload(event)" />
+
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Choose your style:</p>
+        <div class="style-options" id="style-options">
+          <div class="style-option" onclick="selectStyle(this,'Hollywood Blockbuster')"><div class="style-option-emoji">🎬</div><div class="style-option-name">Hollywood</div></div>
+          <div class="style-option" onclick="selectStyle(this,'Pixar Animation')"><div class="style-option-emoji">✨</div><div class="style-option-name">Pixar</div></div>
+          <div class="style-option" onclick="selectStyle(this,'Anime / Manga')"><div class="style-option-emoji">⛩️</div><div class="style-option-name">Anime</div></div>
+          <div class="style-option" onclick="selectStyle(this,'Horror / Thriller')"><div class="style-option-emoji">👁️</div><div class="style-option-name">Horror</div></div>
+          <div class="style-option" onclick="selectStyle(this,'Vintage Retro')"><div class="style-option-emoji">📽️</div><div class="style-option-name">Vintage</div></div>
+          <div class="style-option" onclick="selectStyle(this,'Sci-Fi Epic')"><div class="style-option-emoji">🚀</div><div class="style-option-name">Sci-Fi</div></div>
+          <div class="style-option" onclick="selectStyle(this,'Romance Drama')"><div class="style-option-emoji">💫</div><div class="style-option-name">Romance</div></div>
+        </div>
+        <div class="modal-nav">
+          <button class="btn-back" onclick="goToStep(1)">← Back</button>
+          <button class="btn-gold btn-next" onclick="goToStep(3)" id="step2-next" disabled>Continue →</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: Details + Upsells -->
+      <div class="step-panel" id="panel-3">
+        <div class="field-group">
+          <label class="field-label">Name(s) for the poster</label>
+          <input class="field-input" type="text" id="field-names" placeholder="e.g. John & Sarah, The Smiths" oninput="checkStep3()" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Special date (optional)</label>
+          <input class="field-input" type="text" id="field-date" placeholder="e.g. Summer 2024, July 4th" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Your email — poster delivered here</label>
+          <input class="field-input" type="email" id="field-email" placeholder="your@email.com" oninput="checkStep3()" />
+        </div>
+
+        <p style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Optional Add-Ons</p>
+        <div class="modal-upsells" id="modal-upsells">
+          <div class="upsell-toggle" onclick="toggleUpsell(this,'extra-style',10)" id="upsell-extra-style" style="display:none;">
+            <div class="upsell-toggle-icon">🎨</div>
+            <div class="upsell-toggle-info"><div class="upsell-toggle-name">Extra Style</div><div class="upsell-toggle-desc">One additional style variation</div></div>
+            <div class="upsell-toggle-right"><div class="upsell-toggle-price">+$10</div><div class="toggle-checkbox"><span class="toggle-check">✓</span></div></div>
+          </div>
+          <div class="upsell-toggle" onclick="toggleUpsell(this,'rush',15)">
+            <div class="upsell-toggle-icon">⚡</div>
+            <div class="upsell-toggle-info"><div class="upsell-toggle-name">Rush Order</div><div class="upsell-toggle-desc">Priority generation queue</div></div>
+            <div class="upsell-toggle-right"><div class="upsell-toggle-price">+$15</div><div class="toggle-checkbox"><span class="toggle-check">✓</span></div></div>
+          </div>
+          <div class="upsell-toggle" onclick="toggleUpsell(this,'wallpaper',5)">
+            <div class="upsell-toggle-icon">📱</div>
+            <div class="upsell-toggle-info"><div class="upsell-toggle-name">Wallpaper Pack</div><div class="upsell-toggle-desc">Phone + desktop wallpaper sizes</div></div>
+            <div class="upsell-toggle-right"><div class="upsell-toggle-price">+$5</div><div class="toggle-checkbox"><span class="toggle-check">✓</span></div></div>
+          </div>
+        </div>
+
+        <div class="modal-nav">
+          <button class="btn-back" onclick="goToStep(2)">← Back</button>
+          <button class="btn-gold btn-next" onclick="goToStep(4)" id="step3-next" disabled>Continue to Payment →</button>
+        </div>
+      </div>
+
+      <!-- STEP 4: Payment -->
+      <div class="step-panel" id="panel-4">
+        <div class="order-summary" id="order-summary"></div>
+        <div id="stripe-card-element"></div>
+        <div class="card-errors" id="card-errors"></div>
+        <p class="stripe-secure">🔒 Secured by Stripe · SSL encrypted</p>
+        <div class="modal-nav">
+          <button class="btn-back" onclick="goToStep(3)">← Back</button>
+          <button class="btn-gold btn-next" id="pay-btn" onclick="handlePaymentInit()">Pay &amp; Create My Poster →</button>
+        </div>
+        <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:14px;">By placing your order you agree to our Terms of Service. Free revisions guaranteed.</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  const STRIPE_PUBLISHABLE_KEY = 'pk_live_51Tvk5OKzgEErAr98SVV8y3CBapLsMlXSQ5VbyC5ubFHKjpzI4wZtb0U9K7HlZX5RInHnDFeVxpApmCqqaSEY88Cm003egYfYgw';
+
+  // ─── STATE ────────────────────────────────────────────────────────────────────
+  let order = { product: null, productPrice: 0, style: null, photoBase64: null, names: '', date: '', email: '', upsells: {} };
+  let stripe, elements, paymentElement, paymentReady = false;
+  let currentStep = 1;
+
+  // ─── MOBILE NAV ──────────────────────────────────────────────────────────────
+  function toggleMobileMenu() { const m = document.getElementById('mobile-menu'); m.style.display = m.style.display === 'none' ? 'block' : 'none'; }
+  function closeMobileMenu() { document.getElementById('mobile-menu').style.display = 'none'; }
+
+  // ─── FAQ ─────────────────────────────────────────────────────────────────────
+  function toggleFaq(btn) {
+    const answer = btn.nextElementSibling;
+    const icon = btn.querySelector('.faq-icon');
+    const isOpen = answer.classList.contains('open');
+    document.querySelectorAll('.faq-a').forEach(a => a.classList.remove('open'));
+    document.querySelectorAll('.faq-icon').forEach(i => i.textContent = '+');
+    if (!isOpen) { answer.classList.add('open'); icon.textContent = '−'; }
+  }
+
+  // ─── MODAL ───────────────────────────────────────────────────────────────────
+  function openModal(product) {
+    resetModal();
+    document.getElementById('modal-overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    if (product) {
+      const prices = { digital: 24.99, premium: 49.99 };
+      const option = document.querySelector(`.product-option[onclick*="'${product}'"]`);
+      if (option) selectProduct(option, product, prices[product]);
+      setTimeout(() => goToStep(2), 100);
+    }
+  }
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function handleOverlayClick(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
+
+  function resetModal() {
+    order = { product: null, productPrice: 0, style: null, photoBase64: null, names: '', date: '', email: '', upsells: {} };
+    paymentReady = false; stripe = null; elements = null; paymentElement = null;
+    goToStep(1, true);
+    document.querySelectorAll('.product-option').forEach(o => o.classList.remove('selected'));
+    document.querySelectorAll('.style-option').forEach(o => o.classList.remove('selected'));
+    document.querySelectorAll('.upsell-toggle').forEach(o => o.classList.remove('active'));
+    ['field-names','field-date','field-email'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('upload-text').textContent = 'Click to upload your photo';
+    document.getElementById('upload-area').style.backgroundImage = '';
+    document.getElementById('upload-area').classList.remove('has-photo');
+    document.getElementById('stripe-card-element').innerHTML = '';
+    document.getElementById('card-errors').textContent = '';
+    document.getElementById('step1-next').disabled = true;
+    document.getElementById('step2-next').disabled = true;
+    document.getElementById('step3-next').disabled = true;
+    document.getElementById('pay-btn').textContent = 'Pay & Create My Poster →';
+    document.getElementById('pay-btn').disabled = false;
+    const upsellExtraStyle = document.getElementById('upsell-extra-style');
+    if(upsellExtraStyle) upsellExtraStyle.style.display = 'none';
+    document.getElementById('modal-title').textContent = 'Create Your Poster';
+    document.getElementById('modal-sub').textContent = 'AI-generated and delivered in minutes';
+    document.getElementById('steps-progress').style.display = 'flex';
+  }
+
+  function goToStep(n, silent) {
+    currentStep = n;
+    document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(`panel-${n}`).classList.add('active');
+    ['dot-1','dot-2','dot-3','dot-4'].forEach((id, i) => {
+      const d = document.getElementById(id);
+      d.classList.remove('active','done');
+      if (i + 1 === n) d.classList.add('active');
+      else if (i + 1 < n) d.classList.add('done');
+    });
+    if (!silent) document.getElementById('modal-box').scrollTop = 0;
+    if (n === 4) buildOrderSummary();
+    if (n === 4 && !stripe) initStripe();
+  }
+
+  // ─── PRODUCT ─────────────────────────────────────────────────────────────────
+  function selectProduct(el, productId, price) {
+    document.querySelectorAll('.product-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    order.product = productId;
+    order.productPrice = price;
+    document.getElementById('step1-next').disabled = false;
+    // Show extra style upsell only for Digital (not Premium — Premium already includes 3 styles)
+    const extraStyleEl = document.getElementById('upsell-extra-style');
+    if (extraStyleEl) extraStyleEl.style.display = productId === 'digital' ? 'flex' : 'none';
+    // Remove extra-style from upsells if Premium selected
+    if (productId === 'premium' && order.upsells['extra-style']) {
+      delete order.upsells['extra-style'];
+      const toggle = document.querySelector('.upsell-toggle[onclick*="extra-style"]');
+      if (toggle) toggle.classList.remove('active');
+    }
+  }
+
+  // ─── STYLE ───────────────────────────────────────────────────────────────────
+  function selectStyle(el, styleName) {
+    document.querySelectorAll('.style-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    order.style = styleName;
+    checkStep2();
+  }
+
+  // ─── PHOTO UPLOAD ────────────────────────────────────────────────────────────
+  function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX = 1024;
+        let w = img.width, h = img.height;
+        if (w > h && w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+        else if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        order.photoBase64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+        document.getElementById('upload-text').textContent = '✓ ' + file.name;
+        document.getElementById('upload-area').style.cssText += `background-image:url(${e.target.result});background-size:cover;background-position:center;`;
+        document.getElementById('upload-area').classList.add('has-photo');
+        checkStep2();
+      };
+      img.src = e.target.result;
     };
+    reader.readAsDataURL(file);
+  }
 
-    // Stripe — uses Payment Element (modern, supports all payment methods)
-    let stripe, elements, paymentElement;
+  function checkStep2() {
+    document.getElementById('step2-next').disabled = !(order.photoBase64 && order.style);
+  }
 
-    function initStripe() {
-      if (STRIPE_PUBLISHABLE_KEY.includes('YOUR_STRIPE')) {
-        document.getElementById('stripe-card-element').style.display = 'none';
-        document.getElementById('stripe-element-placeholder').style.display = 'block';
-        return;
-      }
-      // We defer mounting until we have a real PaymentIntent client_secret
-      // (mounted in handlePaymentStep)
-      stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+  function checkStep3() {
+    const names = document.getElementById('field-names').value.trim();
+    const email = document.getElementById('field-email').value.trim();
+    order.names = names; order.email = email;
+    document.getElementById('step3-next').disabled = !(names && email && email.includes('@'));
+  }
+
+  // ─── UPSELLS ─────────────────────────────────────────────────────────────────
+  function toggleUpsell(el, id, price) {
+    el.classList.toggle('active');
+    if (el.classList.contains('active')) order.upsells[id] = price;
+    else delete order.upsells[id];
+  }
+
+  // ─── ORDER SUMMARY ────────────────────────────────────────────────────────────
+  function buildOrderSummary() {
+    order.names = document.getElementById('field-names').value.trim();
+    order.date = document.getElementById('field-date').value.trim();
+    order.email = document.getElementById('field-email').value.trim();
+    const labels = { digital: 'Digital Poster', premium: 'Premium Pack (3 Styles)' };
+    const upsellLabels = { 'extra-style': 'Extra Style', 'rush': 'Rush Order', 'wallpaper': 'Wallpaper Pack' };
+    let total = order.productPrice;
+    let rows = `<div class="summary-row"><span>${labels[order.product] || order.product}</span><span>$${order.productPrice.toFixed(2)}</span></div>`;
+    for (const [id, price] of Object.entries(order.upsells)) {
+      rows += `<div class="summary-row"><span>${upsellLabels[id]}</span><span style="color:var(--gold)">+$${price.toFixed(2)}</span></div>`;
+      total += price;
     }
+    rows += `<div class="summary-row total"><span>Total</span><span class="val">$${total.toFixed(2)}</span></div>`;
+    document.getElementById('order-summary').innerHTML = rows;
+  }
 
-    async function mountPaymentElement(clientSecret) {
-      const cardEl = document.getElementById('stripe-card-element');
-      cardEl.innerHTML = ''; // clear any previous mount
-      elements = stripe.elements({
-        clientSecret,
-        appearance: {
-          theme: 'night',
-          variables: {
-            colorPrimary: '#D4AF37',
-            colorBackground: '#1A1A1A',
-            colorText: '#F0EDE8',
-            colorDanger: '#e74c3c',
-            fontFamily: 'Inter, sans-serif',
-            borderRadius: '10px',
-          }
-        }
+  // ─── STRIPE ──────────────────────────────────────────────────────────────────
+  function initStripe() { stripe = Stripe(STRIPE_PUBLISHABLE_KEY); }
+
+  async function mountPaymentElement(clientSecret) {
+    document.getElementById('stripe-card-element').innerHTML = '';
+    elements = stripe.elements({
+      clientSecret,
+      appearance: { theme: 'night', variables: { colorPrimary: '#D4AF37', colorBackground: '#1A1A1A', colorText: '#F0EDE8', fontFamily: 'Inter, sans-serif', borderRadius: '10px' } },
+    });
+    paymentElement = elements.create('payment');
+    paymentElement.mount('#stripe-card-element');
+    paymentElement.on('change', e => {
+      document.getElementById('card-errors').textContent = e.error ? e.error.message : '';
+    });
+  }
+
+  async function handlePaymentStep() {
+    if (!stripe) initStripe();
+    const btn = document.getElementById('pay-btn');
+    btn.textContent = 'Loading payment…';
+    btn.disabled = true;
+    try {
+      const res = await fetch('/.netlify/functions/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product: order.product,
+          upsells: Object.keys(order.upsells),
+          email: order.email,
+          names: order.names,
+          date: order.date,
+          style: order.style,
+        }),
       });
-      paymentElement = elements.create('payment');
-      paymentElement.mount('#stripe-card-element');
-      paymentElement.on('change', e => {
-        document.getElementById('card-errors').textContent = e.error ? e.error.message : '';
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      await mountPaymentElement(data.clientSecret);
+      order._clientSecret = data.clientSecret;
+    } catch (err) {
+      document.getElementById('card-errors').textContent = 'Could not initialize payment: ' + err.message;
+    } finally {
+      btn.textContent = 'Pay & Create My Poster →';
+      btn.disabled = false;
+    }
+  }
+
+  async function handlePayment() {
+    const email = order.email;
+    if (!email) { document.getElementById('card-errors').textContent = 'Please enter your email address.'; return; }
+    const btn = document.getElementById('pay-btn');
+    btn.textContent = 'Processing…';
+    btn.disabled = true;
+    if (!stripe || !paymentElement) {
+      document.getElementById('card-errors').textContent = 'Payment not ready. Please try again.';
+      btn.textContent = 'Pay & Create My Poster →';
+      btn.disabled = false;
+      return;
+    }
+    try {
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: { return_url: window.location.origin + '?order=success', receipt_email: email },
+        redirect: 'if_required',
       });
-    }
-
-    // ─── MODAL ──────────────────────────────────────────────────────────────────
-    function openModal(preselect) {
-      document.getElementById('modal-overlay').classList.add('active');
-      document.body.style.overflow = 'hidden';
-      goToStep(1);
-      if (preselect) {
-        const map = { digital: 0, poster: 1, framed: 2, canvas: 3, mug: 4, bundle: 5 };
-        const opts = document.querySelectorAll('.product-option');
-        if (map[preselect] !== undefined) {
-          const opt = opts[map[preselect]];
-          const prices = { digital: 24.99, poster: 49.99, framed: 79.99, canvas: 99, mug: 34.99, bundle: 129 };
-          const names = { digital: 'Digital Download', poster: 'Poster Print', framed: 'Framed Poster', canvas: 'Canvas Print', mug: 'Custom Mug', bundle: 'Gift Bundle' };
-          selectProduct(opt, preselect, prices[preselect]);
-          order.productName = names[preselect];
-        }
-      }
-    }
-    function closeModal() {
-      document.getElementById('modal-overlay').classList.remove('active');
-      document.body.style.overflow = '';
-    }
-    function handleOverlayClick(e) {
-      if (e.target === document.getElementById('modal-overlay')) closeModal();
-    }
-
-    // ─── STEP NAVIGATION ────────────────────────────────────────────────────────
-    function goToStep(n) {
-      // panels
-      document.querySelectorAll('.step-panel').forEach((p, i) => {
-        p.classList.toggle('active', i + 1 === n);
-      });
-      // pills
-      document.querySelectorAll('.order-step-pill').forEach((p, i) => {
-        p.classList.remove('active', 'done');
-        if (i + 1 === n) p.classList.add('active');
-        else if (i + 1 < n) p.classList.add('done');
-      });
-      currentStep = n;
-      if (n === 4) {
-        buildSummary();
-        // Collect email before calling backend
-        // Payment element mounts after user enters email and clicks pay
-        if (stripe) {
-          // Already initialized — do nothing until pay is clicked
-        } else {
-          initStripe();
-        }
-      }
-      document.getElementById('modal').scrollTop = 0;
-    }
-
-    // ─── PRODUCT SELECTION ──────────────────────────────────────────────────────
-    const productNames = { digital: 'Digital Download', poster: 'Poster Print', framed: 'Framed Poster', canvas: 'Canvas Print', mug: 'Custom Mug', bundle: 'Gift Bundle' };
-    function selectProduct(el, type, price) {
-      document.querySelectorAll('.product-option').forEach(o => o.classList.remove('selected'));
-      el.classList.add('selected');
-      order.product = type;
-      order.productName = productNames[type];
-      order.basePrice = price;
-      const btn = document.getElementById('step1-next');
-      btn.disabled = false; btn.style.opacity = '1';
-    }
-
-    // ─── STYLE SELECTION ────────────────────────────────────────────────────────
-    function selectStyle(el, style) {
-      document.querySelectorAll('.style-option').forEach(o => o.classList.remove('selected'));
-      el.classList.add('selected');
-      order.style = style;
-      checkStep2();
-    }
-
-    // ─── FILE UPLOAD ────────────────────────────────────────────────────────────
-    function handleFileUpload(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      order.fileUploaded = true;
-      const area = document.getElementById('upload-area');
-      const text = document.getElementById('upload-text');
-      area.classList.add('has-file');
-      text.textContent = '✓ ' + file.name;
-      checkStep2();
-    }
-    function checkStep2() {
-      const ready = order.style && order.fileUploaded;
-      const btn = document.getElementById('step2-next');
-      btn.disabled = !ready; btn.style.opacity = ready ? '1' : '0.4';
-    }
-
-    // ─── DETAILS ────────────────────────────────────────────────────────────────
-    function checkStep3() {
-      const names = document.getElementById('field-names').value.trim();
-      const date  = document.getElementById('field-date').value.trim();
-      order.names = names; order.date = date;
-      const ready = names.length > 0 && date.length > 0;
-      const btn = document.getElementById('step3-next');
-      btn.disabled = !ready; btn.style.opacity = ready ? '1' : '0.4';
-    }
-
-    // ─── UPSELLS ────────────────────────────────────────────────────────────────
-    function toggleUpsell(el, id, price) {
-      el.classList.toggle('checked');
-      if (el.classList.contains('checked')) {
-        order.upsells[id] = price;
+      if (error) {
+        document.getElementById('card-errors').textContent = error.message;
+        btn.textContent = 'Pay & Create My Poster →';
+        btn.disabled = false;
       } else {
-        delete order.upsells[id];
+        await triggerGeneration();
+        showSuccess();
       }
-      order.upsellTotal = Object.values(order.upsells).reduce((a, b) => a + b, 0);
-      if (currentStep === 4) buildSummary();
+    } catch (err) {
+      document.getElementById('card-errors').textContent = 'Payment failed: ' + err.message;
+      btn.textContent = 'Pay & Create My Poster →';
+      btn.disabled = false;
     }
+  }
 
-    // ─── ORDER SUMMARY ──────────────────────────────────────────────────────────
-    const upsellLabels = {
-      'extra-style': 'Extra Style Version',
-      'rush': 'Rush Delivery',
-      'animated': 'Animated Version',
-      'wallpaper': 'Phone Wallpaper',
-      'reveal': 'Video Reveal',
-    };
-    function buildSummary() {
-      const total = order.basePrice + order.upsellTotal;
-      let rows = `
-        <div class="summary-row"><span>${order.productName}</span><span class="val" style="color:var(--text)">$${order.basePrice.toFixed(2)}</span></div>
-        <div class="summary-row"><span>Style</span><span style="color:var(--muted);text-transform:capitalize">${order.style || '—'}</span></div>
-      `;
-      for (const [id, price] of Object.entries(order.upsells)) {
-        rows += `<div class="summary-row"><span>${upsellLabels[id]}</span><span style="color:var(--gold)">+$${price.toFixed(2)}</span></div>`;
+  let paymentInitDone = false;
+  async function handlePaymentInit() {
+    if (!paymentInitDone) {
+      await handlePaymentStep();
+      if (paymentElement) {
+        paymentInitDone = true;
+        document.getElementById('pay-btn').textContent = 'Confirm & Pay →';
       }
-      rows += `<div class="summary-row total"><span>Total</span><span class="val">$${total.toFixed(2)}</span></div>`;
-      document.getElementById('order-summary').innerHTML = rows;
+      return;
     }
+    await handlePayment();
+  }
 
-    // ─── PAYMENT ────────────────────────────────────────────────────────────────
-
-    // Called when user reaches Step 4 — creates the PaymentIntent and mounts Stripe
-    async function handlePaymentStep() {
-      if (!stripe) { initStripe(); }
-      if (!stripe) return; // demo mode, no key yet
-
-      const btn = document.getElementById('pay-btn');
-      btn.textContent = 'Loading payment…';
-      btn.disabled = true;
-
-      try {
-        const res = await fetch('/.netlify/functions/create-payment-intent', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            product:  order.product,
-            upsells:  Object.keys(order.upsells),
-            email:    document.getElementById('field-email').value.trim(),
-            names:    order.names,
-            date:     order.date,
-            style:    order.style,
-          }),
-        });
-        const data = await res.json();
-        if (data.error) throw new Error(data.error);
-
-        await mountPaymentElement(data.clientSecret);
-        order._clientSecret = data.clientSecret;
-      } catch (err) {
-        document.getElementById('card-errors').textContent = 'Could not initialize payment: ' + err.message;
-      } finally {
-        btn.textContent = 'Pay & Create My Poster →';
-        btn.disabled = false;
-      }
+  // ─── TRIGGER GENERATION ──────────────────────────────────────────────────────
+  async function triggerGeneration() {
+    try {
+      await fetch('/.netlify/functions/generate-poster-background', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          photoBase64: order.photoBase64,
+          style: order.style,
+          names: order.names,
+          date: order.date,
+          email: order.email,
+          product: order.product,
+          upsells: Object.keys(order.upsells),
+        }),
+      });
+    } catch (e) {
+      console.error('Generation trigger failed:', e);
+      // Payment already successful — generation will be handled manually if needed
     }
+  }
 
-    async function handlePayment() {
-      const email = document.getElementById('field-email').value.trim();
-      if (!email) {
-        document.getElementById('card-errors').textContent = 'Please enter your email address.';
-        return;
-      }
-
-      const btn = document.getElementById('pay-btn');
-      btn.textContent = 'Processing…';
-      btn.disabled = true;
-
-      // Safety check — payment element must be loaded before confirming
-      if (!stripe || !paymentElement) {
-        document.getElementById('card-errors').textContent = 'Payment not ready. Please try again.';
-        btn.textContent = 'Pay & Create My Poster →';
-        btn.disabled = false;
-        return;
-      }
-
-      try {
-        const { error } = await stripe.confirmPayment({
-          elements,
-          confirmParams: {
-            return_url: window.location.origin + '?order=success',
-            receipt_email: email,
-          },
-          redirect: 'if_required', // only redirect for methods that need it (e.g. 3D Secure)
-        });
-
-        if (error) {
-          document.getElementById('card-errors').textContent = error.message;
-          btn.textContent = 'Pay & Create My Poster →';
-          btn.disabled = false;
-        } else {
-          showSuccess();
-        }
-      } catch (err) {
-        document.getElementById('card-errors').textContent = 'Payment failed: ' + err.message;
-        btn.textContent = 'Pay & Create My Poster →';
-        btn.disabled = false;
-      }
-    }
-
-    // Two-phase pay button:
-    // First click → load Stripe Payment Element (fetches PaymentIntent from backend)
-    // Second click → confirm payment
-    let paymentReady = false;
-    async function handlePaymentInit() {
-      if (!paymentReady) {
-        await handlePaymentStep(); // initializes stripe + fetches payment intent
-        // Only mark ready if the payment element actually loaded successfully
-        if (paymentElement) {
-          paymentReady = true;
-          document.getElementById('pay-btn').textContent = 'Confirm & Pay →';
-        }
-        return;
-      }
-      await handlePayment();
-    }
-
-    function showSuccess() {
-      document.getElementById('modal').innerHTML = `
-        <div style="padding:60px 32px; text-align:center;">
-          <div style="font-size:64px; margin-bottom:20px;">🎬</div>
-          <div style="font-family:'Bebas Neue',sans-serif; font-size:36px; letter-spacing:2px; margin-bottom:12px;">Order Confirmed!</div>
-          <p style="color:var(--muted); font-size:16px; line-height:1.7; max-width:400px; margin:0 auto 32px;">
-            Your poster is in production. You'll receive a preview within 24 hours at your email — then unlimited revisions until you love it.
-          </p>
-          <div style="background:var(--bg3); border-radius:12px; padding:20px; margin-bottom:28px; text-align:left;">
-            <div style="font-size:13px; color:var(--muted); margin-bottom:12px; font-weight:600; text-transform:uppercase; letter-spacing:1px;">What happens next</div>
-            <div style="font-size:14px; color:var(--muted); line-height:2;">
-              ✦ AI generation starts immediately<br/>
-              ✦ Preview email arrives within 24 hours<br/>
-              ✦ Request unlimited free revisions<br/>
-              ✦ Final files delivered when you approve
-            </div>
+  // ─── SUCCESS ─────────────────────────────────────────────────────────────────
+  function showSuccess() {
+    document.getElementById('modal-title').textContent = '';
+    document.getElementById('modal-sub').textContent = '';
+    document.getElementById('steps-progress').style.display = 'none';
+    document.getElementById('modal-box').innerHTML = `
+      <div style="padding:52px 32px;text-align:center;">
+        <div style="font-size:56px;margin-bottom:20px;">🎬</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:2px;margin-bottom:12px;color:var(--gold);">Your Poster is Being Created!</div>
+        <p style="color:var(--muted);font-size:15px;line-height:1.7;max-width:380px;margin:0 auto 28px;">
+          Our AI is generating your personalized movie poster right now. Check your inbox at <strong style="color:var(--text);">${order.email}</strong> — it'll arrive within 2–5 minutes.
+        </p>
+        <div style="background:var(--bg3);border-radius:12px;padding:20px;margin-bottom:24px;text-align:left;">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">What's happening now</div>
+          <div style="font-size:14px;color:var(--muted);line-height:2.1;">
+            ⚡ AI is processing your photo<br/>
+            🎨 Applying ${order.style} style<br/>
+            📧 Poster will be emailed to ${order.email}<br/>
+            🔄 Reply to that email for free revisions
           </div>
-          <button class="btn-gold" onclick="closeModal()" style="padding:14px 40px;">Close & Share the News →</button>
         </div>
-      `;
-    }
-
-    // ─── FAQ ────────────────────────────────────────────────────────────────────
-    function toggleFaq(btn) {
-      const item = btn.closest('.faq-item');
-      const isOpen = item.classList.contains('open');
-      document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
-      if (!isOpen) item.classList.add('open');
-    }
-
-    // ─── MOBILE MENU ────────────────────────────────────────────────────────────
-    function toggleMobileMenu() {
-      const m = document.getElementById('mobile-menu');
-      m.style.display = m.style.display === 'none' ? 'block' : 'none';
-    }
-    function closeMobileMenu() {
-      document.getElementById('mobile-menu').style.display = 'none';
-    }
-
-    // ─── NAV SCROLL ─────────────────────────────────────────────────────────────
-    window.addEventListener('scroll', () => {
-      document.getElementById('nav').style.borderBottomColor =
-        window.scrollY > 40 ? 'rgba(212,175,55,0.12)' : 'rgba(255,255,255,0.05)';
-    });
-
-    // ─── KEYBOARD ───────────────────────────────────────────────────────────────
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') closeModal();
-    });
-  </script>
-
+        <button class="btn-gold" onclick="closeModal()" style="width:100%;padding:15px;border-radius:50px;font-size:15px;">Done →</button>
+      </div>
+    `;
+  }
+</script>
 </body>
 </html>
