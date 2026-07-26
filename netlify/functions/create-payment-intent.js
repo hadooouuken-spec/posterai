@@ -1,20 +1,14 @@
-// Uses Node's built-in fetch to call Stripe directly — no npm dependencies needed
+// Uses Node built-in fetch — no npm dependencies needed
 
 const PRODUCTS = {
-  digital: 2499,
-  poster:  4999,
-  framed:  7999,
-  canvas:  9900,
-  mug:     3499,
-  bundle:  12900,
+  digital: 2499,  // $24.99
+  premium: 4999,  // $49.99
 };
 
 const UPSELLS = {
-  'extra-style': 1000,
-  'rush':        1500,
-  'animated':    2000,
-  'wallpaper':    500,
-  'reveal':      1500,
+  'extra-style': 1000,  // +$10
+  'rush':        1500,  // +$15
+  'wallpaper':    500,  // +$5
 };
 
 exports.handler = async (event) => {
@@ -80,7 +74,6 @@ exports.handler = async (event) => {
       headers: { 'Access-Control-Allow-Origin': '*' },
       body: JSON.stringify({ clientSecret: data.client_secret }),
     };
-
   } catch (err) {
     return {
       statusCode: 500,
