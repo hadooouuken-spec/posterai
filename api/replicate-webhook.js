@@ -19,7 +19,7 @@ module.exports = async function handler(req, res) {
     const prediction = req.body;
 
     if (prediction.status !== 'succeeded') {
-      console.error('Prediction did not succeed:', prediction.status, prediction.error);
+      console.error('Prediction did not succeed:', prediction.status, prediction.error);h
       return res.status(200).json({ received: true, skipped: true });
     }
 
@@ -94,7 +94,7 @@ module.exports = async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'PosterAI <posters@getposterai.com>',
+        hfrom: 'PosterAI <posters@leadmagnetai.co>',h
         to: [email],
         subject: `🎬 Your Movie Poster is Ready, ${displayNames}!`,
         html: emailHtml,
@@ -105,7 +105,7 @@ module.exports = async function handler(req, res) {
 
     if (!emailRes.ok) {
       console.error('Resend error:', emailData);
-      return res.status(500).json({ error: 'Failed to send email.' });
+      return res.status(500).json({ error: 'Failed to send email.', resendError: emailData });
     }
 
     console.log('Email sent successfully to', email, '| Resend ID:', emailData.id);
