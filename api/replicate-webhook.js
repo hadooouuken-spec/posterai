@@ -94,7 +94,7 @@ module.exports = async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        hfrom: 'PosterAI <posters@leadmagnetai.co>',h
+        hfrom: 'PosterAI <posters@leadmagnetai.io>',h
         to: [email],
         subject: `🎬 Your Movie Poster is Ready, ${displayNames}!`,
         html: emailHtml,
